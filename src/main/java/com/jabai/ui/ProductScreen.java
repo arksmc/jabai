@@ -15,37 +15,23 @@ public class ProductScreen extends VBox {
     private final ObservableList<Product> data = FXCollections.observableArrayList();
     private final TableView<Product> table = new TableView<>(data);
 
-    public ProductScreen() {
+    public ProductScreen(Runnable onAddProduct) {
         setSpacing(10);
         setPadding(new Insets(10));
 
+        table.getColumns().add(column("Code", "code"));
         table.getColumns().add(column("Name", "name"));
         table.getColumns().add(column("Category", "category"));
-        table.getColumns().add(column("Description", "description"));
-        table.getColumns().add(column("Price", "price"));
         table.getColumns().add(column("Unit", "unit"));
+        table.getColumns().add(column("Status", "status"));
+        table.getColumns().add(column("Price", "price"));
+        table.getColumns().add(column("Cost", "costPrice"));
+        table.getColumns().add(column("Reorder", "reorderLevel"));
 
-        TextField name = new TextField();      name.setPromptText("Name");
-        TextField category = new TextField();  category.setPromptText("Category");
-        TextField desc = new TextField();      desc.setPromptText("Description");
-        TextField price = new TextField();     price.setPromptText("Price");
-        TextField unit = new TextField();      unit.setPromptText("Unit (kg, L...)");
-        Button addBtn = new Button("Add");
+        Button addBtn = new Button("Add product");
         Button delBtn = new Button("Delete selected");
 
-        addBtn.setOnAction(e -> {
-            try {
-                dao.add(name.getText().trim(), category.getText().trim(), desc.getText().trim(),
-                        Double.parseDouble(price.getText().trim()), unit.getText().trim());
-                name.clear(); category.clear(); desc.clear(); price.clear(); unit.clear();
-                refresh();
-            } catch (NumberFormatException ex) {
-                error("Price must be a number.");
-            } catch (Exception ex) {
-                error(ex.getMessage());
-            }
-        });
-
+        addBtn.setOnAction(e -> onAddProduct.run());
         delBtn.setOnAction(e -> {
             Product p = table.getSelectionModel().getSelectedItem();
             if (p == null) return;
@@ -57,7 +43,7 @@ public class ProductScreen extends VBox {
             }
         });
 
-        getChildren().addAll(table, new HBox(8, name, category, desc, price, unit), new HBox(8, addBtn, delBtn));
+        getChildren().addAll(table, new HBox(8, addBtn, delBtn));
         refresh();
     }
 
