@@ -49,10 +49,31 @@ public class ProductDao {
     }
 
     public void delete(int id) throws SQLException {
-        try (Connection c = Database.connect();
-             PreparedStatement ps = c.prepareStatement("DELETE FROM products WHERE id = ?")) {
-            ps.setInt(1, id);
-            ps.executeUpdate();
+        try (Connection c = Database.connect()) {
+            try (PreparedStatement ps = c.prepareStatement(
+                    "SELECT COALESCE(SUM(quantity), 0) FROM inventory WHERE product_id = ?")) {
+                ps.setInt(1, id);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getDouble(1) > 0) {
+                        throw new SQLException("Cannot delete: this product still has stock in inventory.");
+                    }
+                }
+            }
+            c.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = c.prepareStatement("DELETE FROM inventory WHERE product_id = ?")) {
+                    ps.setInt(1, id);
+                    ps.executeUpdate();
+                }
+                try (PreparedStatement ps = c.prepareStatement("DELETE FROM products WHERE id = ?")) {
+                    ps.setInt(1, id);
+                    ps.executeUpdate();
+                }
+                c.commit();
+            } catch (SQLException e) {
+                c.rollback();
+                throw e;
+            }
         }
     }
 }

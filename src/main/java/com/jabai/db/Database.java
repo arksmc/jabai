@@ -41,6 +41,7 @@ public class Database {
                     PRIMARY KEY (location_id, product_id)
                 )""");
             seed(c);
+            seedStock(c);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -138,5 +139,21 @@ public class Database {
         ps.setDouble(7, cost);
         ps.setDouble(8, reorder);
         ps.executeUpdate();
+    }
+    
+    private static void seedStock(Connection c) throws SQLException {
+        try (Statement s = c.createStatement();
+             ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM inventory")) {
+            if (rs.next() && rs.getInt(1) > 0) return;
+        }
+        try (Statement st = c.createStatement()) {
+            // warehouse: 200 of everything
+            st.executeUpdate("INSERT INTO inventory(location_id, product_id, quantity) "
+                    + "SELECT (SELECT id FROM locations WHERE type = 'WAREHOUSE' LIMIT 1), id, 200 FROM products");
+            // outlet: mostly 60, some low (10), some out of stock (0)
+            st.executeUpdate("INSERT INTO inventory(location_id, product_id, quantity) "
+                    + "SELECT (SELECT id FROM locations WHERE type = 'OUTLET' LIMIT 1), id, "
+                    + "CASE WHEN id % 5 = 0 THEN 10 WHEN id % 7 = 0 THEN 0 ELSE 60 END FROM products");
+        }
     }
 }

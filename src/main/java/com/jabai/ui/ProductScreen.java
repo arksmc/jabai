@@ -34,7 +34,12 @@ public class ProductScreen extends VBox {
         addBtn.setOnAction(e -> onAddProduct.run());
         delBtn.setOnAction(e -> {
             Product p = table.getSelectionModel().getSelectedItem();
-            if (p == null) return;
+            if (p == null) {
+                new Alert(Alert.AlertType.INFORMATION, "Select a product first.").show();
+                return;
+            }
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Delete " + p.getName() + "?");
+            if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
             try {
                 dao.delete(p.getId());
                 refresh();
