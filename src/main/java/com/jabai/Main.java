@@ -1,49 +1,58 @@
 package com.jabai;
 
 import com.jabai.db.Database;
-import com.jabai.ui.InventoryScreen;
-import com.jabai.ui.ProductScreen;
-import com.jabai.ui.AddProductScreen;
+import com.jabai.model.Clerk;
+import com.jabai.model.Location;
+import com.jabai.model.Manager;
+import com.jabai.model.Role;
+import com.jabai.model.User;
+import com.jabai.ui.ClerkDashboard;
+import com.jabai.ui.LoginScreen;
+import com.jabai.ui.ManagerDashboard;
+import com.jabai.ui.OutletSelectionScreen;
+import com.jabai.ui.WelcomeScreen;
 import javafx.application.Application;
-import javafx.geometry.Insets;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 public class Main extends Application {
 
-    private final BorderPane root = new BorderPane();
+    private Scene scene;
 
     @Override
     public void start(Stage stage) {
         Database.init();
 
-        Button productsBtn = new Button("Products");
-        Button inventoryBtn = new Button("Inventory");
-        productsBtn.setOnAction(e -> showProducts());
-        inventoryBtn.setOnAction(e -> root.setCenter(new InventoryScreen()));
-
-        HBox nav = new HBox(8, productsBtn, inventoryBtn);
-        nav.setPadding(new Insets(10));
-        nav.setStyle("-fx-background-color: #e9ecef;");
-
-        root.setTop(nav);
-        showProducts();
+        scene = new Scene(new StackPane(), 1000, 620);
+        showWelcome();
 
         stage.setTitle("Bagsakan");
-        stage.setScene(new Scene(root, 900, 550));
+        stage.setScene(scene);
         stage.show();
     }
 
-    private void showProducts() {
-        root.setCenter(new ProductScreen(this::showAddProduct));
+    private void showWelcome() {
+        scene.setRoot(new WelcomeScreen(this::showManagerLogin, this::showOutletSelection));
     }
 
-    private void showAddProduct() {
-        // after Save or Cancel, go back to the product list
-        root.setCenter(new AddProductScreen(this::showProducts));
+    private void showManagerLogin() {
+        scene.setRoot(new LoginScreen(Role.MANAGER, null, this::showWelcome, this::showDashboard));
+    }
+
+    private void showOutletSelection() {
+        scene.setRoot(new OutletSelectionScreen(this::showWelcome, this::showClerkLogin));
+    }
+
+    private void showClerkLogin(Location outlet) {
+        scene.setRoot(new LoginScreen(Role.CLERK, outlet, this::showOutletSelection, this::showDashboard));
+    }
+
+    private void showDashboard(User user) {
+        switch (user) {
+            case Manager m -> scene.setRoot(new ManagerDashboard(m, this::showWelcome));
+            case Clerk c -> scene.setRoot(new ClerkDashboard(c, this::showWelcome));
+        }
     }
 
     public static void main(String[] args) {

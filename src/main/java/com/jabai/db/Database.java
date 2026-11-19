@@ -1,9 +1,18 @@
 package com.jabai.db;
 
+import com.jabai.util.PasswordUtil;
+
 import java.sql.*;
 
 public class Database {
     private static final String URL = "jdbc:sqlite:bagsakan.db";
+    static {
+        try {
+            Class.forName("org.sqlite.JDBC");
+        } catch (ClassNotFoundException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
 
     public static Connection connect() throws SQLException {
         Connection c = DriverManager.getConnection(URL);
@@ -40,8 +49,23 @@ public class Database {
                     quantity REAL NOT NULL DEFAULT 0,
                     PRIMARY KEY (location_id, product_id)
                 )""");
+            s.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        username TEXT NOT NULL UNIQUE,
+                        password_hash TEXT NOT NULL,
+                        full_name TEXT NOT NULL,
+                        role TEXT NOT NULL CHECK (role IN ('MANAGER', 'CLERK')),
+                        location_id INTEGER REFERENCES locations(id),
+                        status TEXT NOT NULL DEFAULT 'Active',
+                        CHECK (
+                            (role = 'MANAGER' AND location_id IS NULL) OR
+                            (role = 'CLERK' AND location_id IS NOT NULL)
+                        )
+                    )""");
             seed(c);
             seedStock(c);
+            seedUsers(c);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -154,6 +178,41 @@ public class Database {
             st.executeUpdate("INSERT INTO inventory(location_id, product_id, quantity) "
                     + "SELECT (SELECT id FROM locations WHERE type = 'OUTLET' LIMIT 1), id, "
                     + "CASE WHEN id % 5 = 0 THEN 10 WHEN id % 7 = 0 THEN 0 ELSE 60 END FROM products");
+        }
+    }
+    
+    private static void seedUsers(Connection c) throws SQLException {
+        try (Statement s = c.createStatement();
+             ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM users")) {
+            if (rs.next() && rs.getInt(1) > 0) return;
+        }
+
+        Integer outletId = null;
+        try (Statement s = c.createStatement();
+             ResultSet rs = s.executeQuery("SELECT id FROM locations WHERE type = 'OUTLET' ORDER BY id LIMIT 1")) {
+            if (rs.next()) outletId = rs.getInt(1);
+        }
+
+        String sql = "INSERT INTO users(username, password_hash, full_name, role, location_id, status) "
+                   + "VALUES (?,?,?,?,?,?)";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, "manager");
+            ps.setString(2, PasswordUtil.hash("manager123"));
+            ps.setString(3, "Store Manager");
+            ps.setString(4, "MANAGER");
+            ps.setNull(5, Types.INTEGER);
+            ps.setString(6, "Active");
+            ps.executeUpdate();
+
+            if (outletId != null) {
+                ps.setString(1, "clerk1");
+                ps.setString(2, PasswordUtil.hash("clerk123"));
+                ps.setString(3, "Outlet 1 Clerk");
+                ps.setString(4, "CLERK");
+                ps.setInt(5, outletId);
+                ps.setString(6, "Active");
+                ps.executeUpdate();
+            }
         }
     }
 }
