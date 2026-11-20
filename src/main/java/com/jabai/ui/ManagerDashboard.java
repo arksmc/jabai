@@ -14,21 +14,28 @@ import java.util.List;
 
 public class ManagerDashboard extends BorderPane {
 
+    private final Manager manager;
     private final Button productsBtn = navButton("Products");
     private final Button inventoryBtn = navButton("Inventory");
+    private final Button ordersBtn = navButton("Stock Orders");
 
     public ManagerDashboard(Manager manager, Runnable onLogout) {
+        this.manager = manager;
         getStyleClass().add("app-root");
 
         Label brand = new Label("BAGSAKAN");
         brand.getStyleClass().add("sidebar-brand");
         Label subtitle = new Label("Agriculture Data Management");
         subtitle.getStyleClass().add("sidebar-subtitle");
-        Label section = new Label("MANAGE");
-        section.getStyleClass().add("sidebar-section");
+
+        Label manageSection = new Label("MANAGE");
+        manageSection.getStyleClass().add("sidebar-section");
+        Label warehouseSection = new Label("WAREHOUSE");
+        warehouseSection.getStyleClass().add("sidebar-section");
 
         productsBtn.setOnAction(e -> showProducts());
         inventoryBtn.setOnAction(e -> showInventory());
+        ordersBtn.setOnAction(e -> showOrders());
 
         Region spacer = new Region();
         VBox.setVgrow(spacer, Priority.ALWAYS);
@@ -43,8 +50,10 @@ public class ManagerDashboard extends BorderPane {
         logoutBtn.setMaxWidth(Double.MAX_VALUE);
         logoutBtn.setOnAction(e -> onLogout.run());
 
-        VBox sidebar = new VBox(4, brand, subtitle, section,
-                productsBtn, inventoryBtn, spacer, who, role, logoutBtn);
+        VBox sidebar = new VBox(4, brand, subtitle,
+                manageSection, productsBtn, inventoryBtn,
+                warehouseSection, ordersBtn,
+                spacer, who, role, logoutBtn);
         sidebar.getStyleClass().add("sidebar");
         sidebar.setPrefWidth(230);
         sidebar.setMinWidth(230);
@@ -61,7 +70,7 @@ public class ManagerDashboard extends BorderPane {
     }
 
     private void setActive(Button active) {
-        for (Button b : List.of(productsBtn, inventoryBtn)) {
+        for (Button b : List.of(productsBtn, inventoryBtn, ordersBtn)) {
             b.getStyleClass().remove("nav-button-active");
         }
         active.getStyleClass().add("nav-button-active");
@@ -80,5 +89,10 @@ public class ManagerDashboard extends BorderPane {
     private void showInventory() {
         setActive(inventoryBtn);
         showContent(new InventoryScreen());
+    }
+
+    private void showOrders() {
+        setActive(ordersBtn);
+        showContent(new StockOrdersScreen(manager));
     }
 }

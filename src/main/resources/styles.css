@@ -185,3 +185,25 @@
     -fx-text-fill: #6b7a6b;
 }
 
+.badge-info {
+    -fx-background-color: #e3f2fd;
+    -fx-text-fill: #1565c0;
+}
+.section-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1b5e20;
+}
+.total-label {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1b5e20;
+}
+.split-pane {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+.split-pane > .split-pane-divider {
+    -fx-background-color: transparent;
+}
+
