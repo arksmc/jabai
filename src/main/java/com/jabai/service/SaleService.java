@@ -4,7 +4,7 @@ import com.jabai.db.Database;
 import com.jabai.db.InventoryDao;
 import com.jabai.db.SaleDao;
 import com.jabai.model.SaleLine;
-
+import com.jabai.model.MovementReason;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
@@ -31,7 +31,8 @@ public class SaleService {
                         total, cashTenderedCentavos, cashTenderedCentavos - total);
                 for (SaleLine line : lines) {
                     saleDao.insertItem(c, saleId, line);
-                    inventoryDao.decrease(c, locationId, line.productId(), line.quantity());
+                    inventoryDao.decrease(c, locationId, line.productId(), line.quantity(),
+                            MovementReason.SALE, saleId, userId);
                 }
                 c.commit();
                 return saleId;

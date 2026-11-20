@@ -74,12 +74,7 @@ public class ManagerDashboard extends BorderPane {
 
     private void showProducts() {
         setActive(productsBtn);
-        showContent(new ProductScreen(this::showAddProduct));
-    }
-
-    private void showAddProduct() {
-        setActive(productsBtn);
-        showContent(new AddProductScreen(this::showProducts));
+        showContent(new ProductScreen());
     }
 
     private void showInventory() {

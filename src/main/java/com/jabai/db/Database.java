@@ -85,6 +85,60 @@ public class Database {
 	                quantity REAL NOT NULL CHECK (quantity > 0),
 	                unit_price_centavos INTEGER NOT NULL CHECK (unit_price_centavos >= 0)
 	            )""");
+	        s.execute("""
+	        	    CREATE TABLE IF NOT EXISTS stock_movements (
+	        	        id INTEGER PRIMARY KEY AUTOINCREMENT,
+	        	        product_id INTEGER NOT NULL REFERENCES products(id),
+	        	        location_id INTEGER NOT NULL REFERENCES locations(id),
+	        	        delta REAL NOT NULL CHECK (delta <> 0),
+	        	        reason TEXT NOT NULL,
+	        	        reference_id INTEGER,
+	        	        user_id INTEGER NOT NULL REFERENCES users(id),
+	        	        created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+	        	    )""");
+	        	s.execute("""
+	        	    CREATE TABLE IF NOT EXISTS stock_orders (
+	        	        id INTEGER PRIMARY KEY AUTOINCREMENT,
+	        	        supplier TEXT NOT NULL,
+	        	        status TEXT NOT NULL DEFAULT 'Ordered' CHECK (status IN ('Ordered', 'Received', 'Cancelled')),
+	        	        ordered_by INTEGER NOT NULL REFERENCES users(id),
+	        	        notes TEXT,
+	        	        created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+	        	        received_at TEXT
+	        	    )""");
+	        	s.execute("""
+	        	    CREATE TABLE IF NOT EXISTS stock_order_items (
+	        	        id INTEGER PRIMARY KEY AUTOINCREMENT,
+	        	        order_id INTEGER NOT NULL REFERENCES stock_orders(id),
+	        	        product_id INTEGER NOT NULL REFERENCES products(id),
+	        	        quantity REAL NOT NULL CHECK (quantity > 0),
+	        	        unit_cost_centavos INTEGER NOT NULL DEFAULT 0 CHECK (unit_cost_centavos >= 0)
+	        	    )""");
+	        	s.execute("""
+	        	    CREATE TABLE IF NOT EXISTS stock_requests (
+	        	        id INTEGER PRIMARY KEY AUTOINCREMENT,
+	        	        location_id INTEGER NOT NULL REFERENCES locations(id),
+	        	        requested_by INTEGER NOT NULL REFERENCES users(id),
+	        	        status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Fulfilled', 'Rejected')),
+	        	        note TEXT,
+	        	        response_note TEXT,
+	        	        created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+	        	        resolved_at TEXT,
+	        	        resolved_by INTEGER REFERENCES users(id)
+	        	    )""");
+	        	s.execute("""
+	        	    CREATE TABLE IF NOT EXISTS stock_request_items (
+	        	        id INTEGER PRIMARY KEY AUTOINCREMENT,
+	        	        request_id INTEGER NOT NULL REFERENCES stock_requests(id),
+	        	        product_id INTEGER NOT NULL REFERENCES products(id),
+	        	        quantity_requested REAL NOT NULL CHECK (quantity_requested > 0),
+	        	        quantity_sent REAL NOT NULL DEFAULT 0 CHECK (quantity_sent >= 0),
+	        	        UNIQUE (request_id, product_id)
+	        	    )""");
+	        s.execute("CREATE INDEX IF NOT EXISTS idx_movements_lookup ON stock_movements(product_id, location_id, created_at)");
+	        s.execute("CREATE INDEX IF NOT EXISTS idx_order_items_order ON stock_order_items(order_id)");
+	        s.execute("CREATE INDEX IF NOT EXISTS idx_request_items_request ON stock_request_items(request_id)");
+	        s.execute("CREATE INDEX IF NOT EXISTS idx_requests_status ON stock_requests(status, location_id)");   
 	        s.execute("CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id)");
 	        s.execute("CREATE INDEX IF NOT EXISTS idx_sale_items_product ON sale_items(product_id)");
 	        s.execute("CREATE INDEX IF NOT EXISTS idx_sales_location_date ON sales(location_id, created_at)");

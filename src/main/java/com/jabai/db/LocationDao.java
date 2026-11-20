@@ -23,4 +23,12 @@ public class LocationDao {
         }
         return list;
     }
+    
+    public int findWarehouseId(Connection c) throws SQLException {
+        try (Statement s = c.createStatement();
+             ResultSet rs = s.executeQuery("SELECT id FROM locations WHERE type = 'WAREHOUSE' LIMIT 1")) {
+            if (rs.next()) return rs.getInt(1);
+            throw new SQLException("No warehouse location found.");
+        }
+    }
 }

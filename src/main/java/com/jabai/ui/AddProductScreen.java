@@ -8,6 +8,7 @@ import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.geometry.Pos;
 
 public class AddProductScreen extends VBox {
     private final ProductDao dao = new ProductDao();
@@ -34,6 +35,10 @@ public class AddProductScreen extends VBox {
         GridPane form = new GridPane();
         form.setHgap(12);
         form.setVgap(8);
+        form.setVgap(10);
+        for (Control field : new Control[]{name, code, category, unit, status, sellingPrice, costPrice, reorderLevel}) {
+            field.setPrefWidth(260);
+        }
 
         form.addRow(0, new Label("Product name *"), name);
         form.addRow(1, new Label("Product code *"), code);
@@ -56,7 +61,9 @@ public class AddProductScreen extends VBox {
         cancel.getStyleClass().add("btn-secondary");
         save.getStyleClass().add("btn-primary");
 
-        getChildren().addAll(heading, form, new HBox(8, cancel, save));
+        HBox buttons = new HBox(8, cancel, save);
+        buttons.setAlignment(Pos.CENTER_RIGHT);
+        getChildren().addAll(heading, form, buttons);
     }
 
     private boolean save() {
@@ -93,6 +100,8 @@ public class AddProductScreen extends VBox {
     }
 
     private void error(String msg) {
-        new Alert(Alert.AlertType.ERROR, msg).show();
+        Alert alert = new Alert(Alert.AlertType.ERROR, msg);
+        alert.initOwner(getScene().getWindow());
+        alert.show();
     }
 }

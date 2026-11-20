@@ -145,3 +145,43 @@
     -fx-alignment: CENTER_LEFT;
     -fx-padding: 0 10 0 10;
 }
+
+/* ---------- Badges ---------- */
+.badge {
+    -fx-padding: 3 12 3 12;
+    -fx-background-radius: 20;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+.badge-ok {
+    -fx-background-color: #e8f5e9;
+    -fx-text-fill: #2e7d32;
+}
+.badge-low {
+    -fx-background-color: #fff3e0;
+    -fx-text-fill: #e65100;
+}
+.badge-out {
+    -fx-background-color: #ffebee;
+    -fx-text-fill: #c62828;
+}
+.badge-muted {
+    -fx-background-color: #eceff1;
+    -fx-text-fill: #546e7a;
+}
+
+/* ---------- Search / filters ---------- */
+.search-field {
+    -fx-background-color: white;
+    -fx-border-color: #cfd8cf;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 7 10 7 10;
+}
+.search-field:focused {
+    -fx-border-color: #2e7d32;
+}
+.muted-label {
+    -fx-text-fill: #6b7a6b;
+}
+
