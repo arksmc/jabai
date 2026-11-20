@@ -1,6 +1,7 @@
 package com.jabai.ui;
 
 import com.jabai.db.Database;
+import javafx.scene.layout.Priority;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -50,11 +51,12 @@ public class InventoryScreen extends VBox {
         table.getColumns().add(column("Reorder Level", "reorderLevel"));
         table.getColumns().add(column("Stock Status", "stockStatus"));
 
-        getChildren().addAll(
-                new Label("Inventory Management"),
-                controls,
-                table
-        );
+        Label heading = new Label("Inventory Management");
+        heading.getStyleClass().add("page-title");
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        getChildren().addAll(heading, controls, table);
 
         refresh();
     }
@@ -77,19 +79,15 @@ public class InventoryScreen extends VBox {
         data.clear();
 
         String sql = """
-            SELECT
-                p.code,
-                p.name,
-                p.category,
-                p.unit,
-                i.quantity,
-                p.reorder_level
-            FROM inventory i
-            JOIN products p ON i.product_id = p.id
-            JOIN locations l ON i.location_id = l.id
-            WHERE l.name = ?
-            ORDER BY p.category, p.name
-            """;
+        	    SELECT p.code, p.name, p.category, p.unit,
+        	           COALESCE(i.quantity, 0) AS quantity,
+        	           p.reorder_level
+        	    FROM products p
+        	    CROSS JOIN locations l
+        	    LEFT JOIN inventory i ON i.product_id = p.id AND i.location_id = l.id
+        	    WHERE l.name = ?
+        	    ORDER BY p.category, p.name
+        	    """;
 
         try (Connection c = Database.connect();
              PreparedStatement ps = c.prepareStatement(sql)) {

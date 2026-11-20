@@ -19,12 +19,15 @@ import javafx.stage.Stage;
 public class Main extends Application {
 
     private Scene scene;
+    
+    
 
     @Override
     public void start(Stage stage) {
         Database.init();
 
         scene = new Scene(new StackPane(), 1000, 620);
+        scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());
         showWelcome();
 
         stage.setTitle("Bagsakan");

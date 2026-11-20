@@ -1,6 +1,7 @@
 package com.jabai.ui;
 
 import com.jabai.db.ProductDao;
+import com.jabai.util.Money;
 import com.jabai.model.Product;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
@@ -50,7 +51,12 @@ public class AddProductScreen extends VBox {
             if (save()) onDone.run();
         });
 
-        getChildren().addAll(new Label("Add product"), form, new HBox(8, cancel, save));
+        Label heading = new Label("Add product");
+        heading.getStyleClass().add("page-title");
+        cancel.getStyleClass().add("btn-secondary");
+        save.getStyleClass().add("btn-primary");
+
+        getChildren().addAll(heading, form, new HBox(8, cancel, save));
     }
 
     private boolean save() {
@@ -66,22 +72,24 @@ public class AddProductScreen extends VBox {
                 error("Product code must be unique. \"" + c + "\" already exists.");
                 return false;
             }
+            long price = Money.toCentavos(sellingPrice.getText());
+            long cost = costPrice.getText().isBlank() ? 0 : Money.toCentavos(costPrice.getText());
+            double reorder = reorderLevel.getText().isBlank() ? 0 : Double.parseDouble(reorderLevel.getText().trim());
+
+            if (price < 0 || cost < 0 || reorder < 0) {
+                error("Prices and reorder level cannot be negative.");
+                return false;
+            }
+
             dao.add(new Product(0, c, n, category.getValue(), unit.getValue(), status.getValue(),
-                    Double.parseDouble(sellingPrice.getText().trim()),
-                    parseOrZero(costPrice.getText()),
-                    parseOrZero(reorderLevel.getText())));
+                    price, cost, reorder));
             return true;
-        } catch (NumberFormatException ex) {
-            error("Prices and reorder level must be numbers.");
+        } catch (NumberFormatException | ArithmeticException ex) {
+            error("Prices and reorder level must be valid numbers.");
         } catch (Exception ex) {
             error(ex.getMessage());
         }
         return false;
-    }
-
-    private double parseOrZero(String s) {
-        s = s.trim();
-        return s.isEmpty() ? 0 : Double.parseDouble(s);
     }
 
     private void error(String msg) {

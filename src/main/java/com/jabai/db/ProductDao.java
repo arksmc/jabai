@@ -7,36 +7,40 @@ import java.util.List;
 
 public class ProductDao {
 
-    public List<Product> findAll() throws SQLException {
-        List<Product> list = new ArrayList<>();
-        try (Connection c = Database.connect();
-             Statement s = c.createStatement();
-             ResultSet rs = s.executeQuery("SELECT * FROM products ORDER BY category, name")) {
-            while (rs.next()) {
-                list.add(new Product(
-                        rs.getInt("id"), rs.getString("code"), rs.getString("name"),
-                        rs.getString("category"), rs.getString("unit"), rs.getString("status"),
-                        rs.getDouble("price"), rs.getDouble("cost_price"), rs.getDouble("reorder_level")));
-            }
-        }
-        return list;
-    }
+	public List<Product> findAll() throws SQLException {
+	    List<Product> list = new ArrayList<>();
+	    String sql = "SELECT id, code, name, category, unit, status, "
+	               + "price_centavos, cost_price_centavos, reorder_level "
+	               + "FROM products ORDER BY category, name";
+	    try (Connection c = Database.connect();
+	         Statement s = c.createStatement();
+	         ResultSet rs = s.executeQuery(sql)) {
+	        while (rs.next()) {
+	            list.add(new Product(
+	                    rs.getInt("id"), rs.getString("code"), rs.getString("name"),
+	                    rs.getString("category"), rs.getString("unit"), rs.getString("status"),
+	                    rs.getLong("price_centavos"), rs.getLong("cost_price_centavos"),
+	                    rs.getDouble("reorder_level")));
+	        }
+	    }
+	    return list;
+	}
 
-    public void add(Product p) throws SQLException {
-        String sql = "INSERT INTO products(code, name, category, unit, status, price, cost_price, reorder_level) "
-                   + "VALUES (?,?,?,?,?,?,?,?)";
-        try (Connection c = Database.connect(); PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setString(1, p.getCode());
-            ps.setString(2, p.getName());
-            ps.setString(3, p.getCategory());
-            ps.setString(4, p.getUnit());
-            ps.setString(5, p.getStatus());
-            ps.setDouble(6, p.getPrice());
-            ps.setDouble(7, p.getCostPrice());
-            ps.setDouble(8, p.getReorderLevel());
-            ps.executeUpdate();
-        }
-    }
+	public void add(Product p) throws SQLException {
+	    String sql = "INSERT INTO products(code, name, category, unit, status, "
+	               + "price_centavos, cost_price_centavos, reorder_level) VALUES (?,?,?,?,?,?,?,?)";
+	    try (Connection c = Database.connect(); PreparedStatement ps = c.prepareStatement(sql)) {
+	        ps.setString(1, p.getCode());
+	        ps.setString(2, p.getName());
+	        ps.setString(3, p.getCategory());
+	        ps.setString(4, p.getUnit());
+	        ps.setString(5, p.getStatus());
+	        ps.setLong(6, p.getPriceCentavos());
+	        ps.setLong(7, p.getCostPriceCentavos());
+	        ps.setDouble(8, p.getReorderLevel());
+	        ps.executeUpdate();
+	    }
+	}
 
     public boolean codeExists(String code) throws SQLException {
         try (Connection c = Database.connect();
@@ -48,19 +52,39 @@ public class ProductDao {
         }
     }
 
-    public void delete(int id) throws SQLException {
+    public boolean delete(int id) throws SQLException {
         try (Connection c = Database.connect()) {
-            try (PreparedStatement ps = c.prepareStatement(
-                    "SELECT COALESCE(SUM(quantity), 0) FROM inventory WHERE product_id = ?")) {
-                ps.setInt(1, id);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next() && rs.getDouble(1) > 0) {
-                        throw new SQLException("Cannot delete: this product still has stock in inventory.");
-                    }
-                }
-            }
             c.setAutoCommit(false);
             try {
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT COALESCE(SUM(quantity), 0) FROM inventory WHERE product_id = ?")) {
+                    ps.setInt(1, id);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next() && rs.getDouble(1) > 0) {
+                            throw new SQLException("Cannot remove: this product still has stock in inventory.");
+                        }
+                    }
+                }
+
+                boolean hasSales;
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT 1 FROM sale_items WHERE product_id = ? LIMIT 1")) {
+                    ps.setInt(1, id);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        hasSales = rs.next();
+                    }
+                }
+
+                if (hasSales) {
+                    try (PreparedStatement ps = c.prepareStatement(
+                            "UPDATE products SET status = 'Inactive' WHERE id = ?")) {
+                        ps.setInt(1, id);
+                        ps.executeUpdate();
+                    }
+                    c.commit();
+                    return false;
+                }
+
                 try (PreparedStatement ps = c.prepareStatement("DELETE FROM inventory WHERE product_id = ?")) {
                     ps.setInt(1, id);
                     ps.executeUpdate();
@@ -70,6 +94,7 @@ public class ProductDao {
                     ps.executeUpdate();
                 }
                 c.commit();
+                return true;
             } catch (SQLException e) {
                 c.rollback();
                 throw e;

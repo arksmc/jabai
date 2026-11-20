@@ -15,78 +15,87 @@ public class Database {
 	}
 
 	public static Connection connect() throws SQLException {
-		Connection c = DriverManager.getConnection(URL);
-		try (Statement s = c.createStatement()) {
-			s.execute("PRAGMA foreign_keys = ON");
-		}
-		return c;
+	    Connection c = DriverManager.getConnection(URL);
+	    try (Statement s = c.createStatement()) {
+	        s.execute("PRAGMA foreign_keys = ON");
+	        s.execute("PRAGMA busy_timeout = 5000");
+	    }
+	    return c;
 	}
 
 	public static void init() {
-		try (Connection c = connect(); Statement s = c.createStatement()) {
-			s.execute("""
-				CREATE TABLE IF NOT EXISTS products (
-					id INTEGER PRIMARY KEY AUTOINCREMENT,
-					code TEXT NOT NULL UNIQUE,
-					name TEXT NOT NULL,
-					category TEXT NOT NULL,
-					unit TEXT NOT NULL,
-					status TEXT NOT NULL DEFAULT 'Active',
-					price REAL NOT NULL,
-					cost_price REAL,
-					reorder_level REAL
-				)""");
-			s.execute("""
-				CREATE TABLE IF NOT EXISTS locations (
-					id INTEGER PRIMARY KEY AUTOINCREMENT,
-					name TEXT NOT NULL UNIQUE,
-					type TEXT NOT NULL
-				)""");
-			s.execute("""
-				CREATE TABLE IF NOT EXISTS inventory (
-					location_id INTEGER NOT NULL REFERENCES locations(id),
-					product_id INTEGER NOT NULL REFERENCES products(id),
-					quantity REAL NOT NULL DEFAULT 0,
-					PRIMARY KEY (location_id, product_id)
-				)""");
-			s.execute("""
-					CREATE TABLE IF NOT EXISTS users (
-						id INTEGER PRIMARY KEY AUTOINCREMENT,
-						username TEXT NOT NULL UNIQUE,
-						password_hash TEXT NOT NULL,
-						full_name TEXT NOT NULL,
-						role TEXT NOT NULL CHECK (role IN ('MANAGER', 'CLERK')),
-						location_id INTEGER REFERENCES locations(id),
-						status TEXT NOT NULL DEFAULT 'Active',
-						CHECK (
-							(role = 'MANAGER' AND location_id IS NULL) OR
-							(role = 'CLERK' AND location_id IS NOT NULL)
-						)
-				)""");
-			s.execute("""
-					CREATE TABLE IF NOT EXISTS sales (
-						id INTEGER PRIMARY KEY AUTOINCREMENT,
-						location_id INTEGER NOT NULL REFERENCES locations(id),
-						user_id INTEGER NOT NULL REFERENCES users(id),
-						total REAL NOT NULL,
-						cash_tendered REAL NOT NULL,
-						change_given REAL NOT NULL,
-						created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
-				)""");
-			s.execute("""
-					CREATE TABLE IF NOT EXISTS sale_items (
-						id INTEGER PRIMARY KEY AUTOINCREMENT,
-						sale_id INTEGER NOT NULL REFERENCES sales(id),
-						product_id INTEGER NOT NULL REFERENCES products(id),
-						quantity REAL NOT NULL,
-						unit_price REAL NOT NULL
-				)""");
-			seed(c);
-			seedStock(c);
-			seedUsers(c);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+	    try (Connection c = connect(); Statement s = c.createStatement()) {
+	    	s.execute("PRAGMA journal_mode = WAL");
+	        s.execute("""
+	            CREATE TABLE IF NOT EXISTS products (
+	                id INTEGER PRIMARY KEY AUTOINCREMENT,
+	                code TEXT NOT NULL UNIQUE COLLATE NOCASE,
+	                name TEXT NOT NULL,
+	                category TEXT NOT NULL,
+	                unit TEXT NOT NULL,
+	                status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive')),
+	                price_centavos INTEGER NOT NULL CHECK (price_centavos >= 0),
+	                cost_price_centavos INTEGER NOT NULL DEFAULT 0 CHECK (cost_price_centavos >= 0),
+	                reorder_level REAL NOT NULL DEFAULT 0 CHECK (reorder_level >= 0)
+	            )""");
+	        s.execute("""
+	            CREATE TABLE IF NOT EXISTS locations (
+	                id INTEGER PRIMARY KEY AUTOINCREMENT,
+	                name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+	                type TEXT NOT NULL CHECK (type IN ('WAREHOUSE', 'OUTLET'))
+	            )""");
+	        s.execute("""
+	            CREATE TABLE IF NOT EXISTS inventory (
+	                location_id INTEGER NOT NULL REFERENCES locations(id),
+	                product_id INTEGER NOT NULL REFERENCES products(id),
+	                quantity REAL NOT NULL DEFAULT 0 CHECK (quantity >= 0),
+	                PRIMARY KEY (location_id, product_id)
+	            )""");
+	        s.execute("""
+	            CREATE TABLE IF NOT EXISTS users (
+	                id INTEGER PRIMARY KEY AUTOINCREMENT,
+	                username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+	                password_hash TEXT NOT NULL,
+	                full_name TEXT NOT NULL,
+	                role TEXT NOT NULL CHECK (role IN ('MANAGER', 'CLERK')),
+	                location_id INTEGER REFERENCES locations(id),
+	                status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive')),
+	                CHECK (
+	                    (role = 'MANAGER' AND location_id IS NULL) OR
+	                    (role = 'CLERK' AND location_id IS NOT NULL)
+	                )
+	            )""");
+	        s.execute("""
+	            CREATE TABLE IF NOT EXISTS sales (
+	                id INTEGER PRIMARY KEY AUTOINCREMENT,
+	                location_id INTEGER NOT NULL REFERENCES locations(id),
+	                user_id INTEGER NOT NULL REFERENCES users(id),
+	                total_centavos INTEGER NOT NULL CHECK (total_centavos >= 0),
+	                cash_tendered_centavos INTEGER NOT NULL,
+	                change_given_centavos INTEGER NOT NULL,
+	                created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+	                CHECK (cash_tendered_centavos >= total_centavos),
+	                CHECK (change_given_centavos = cash_tendered_centavos - total_centavos)
+	            )""");
+	        s.execute("""
+	            CREATE TABLE IF NOT EXISTS sale_items (
+	                id INTEGER PRIMARY KEY AUTOINCREMENT,
+	                sale_id INTEGER NOT NULL REFERENCES sales(id),
+	                product_id INTEGER NOT NULL REFERENCES products(id),
+	                quantity REAL NOT NULL CHECK (quantity > 0),
+	                unit_price_centavos INTEGER NOT NULL CHECK (unit_price_centavos >= 0)
+	            )""");
+	        s.execute("CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id)");
+	        s.execute("CREATE INDEX IF NOT EXISTS idx_sale_items_product ON sale_items(product_id)");
+	        s.execute("CREATE INDEX IF NOT EXISTS idx_sales_location_date ON sales(location_id, created_at)");
+	        s.execute("CREATE INDEX IF NOT EXISTS idx_inventory_product ON inventory(product_id)");
+
+	        seed(c);
+	        seedStock(c);
+	        seedUsers(c);
+	    } catch (SQLException e) {
+	        throw new IllegalStateException("Database setup failed", e);
+	    }
 	}
 
 	private static void seed(Connection c) throws SQLException {
@@ -96,8 +105,8 @@ public class Database {
 		}
 
 		try (Statement st = c.createStatement()) {
-			st.executeUpdate("INSERT INTO locations(name, type) VALUES "
-					+ "('Main Warehouse', 'WAREHOUSE'), ('Outlet 1', 'OUTLET')");
+			st.executeUpdate("INSERT OR IGNORE INTO locations(name, type) VALUES "
+			        + "('Main Warehouse', 'WAREHOUSE'), ('Outlet 1', 'OUTLET')");
 		}
 
 		// {category, name, unit, price}
@@ -151,35 +160,23 @@ public class Database {
 			{"Beef", "Sirloin", "kg", "550"}, {"Beef", "Tenderloin", "kg", "900"}
 		};
 
-		String sql = "INSERT INTO products(code, name, category, unit, status, price, cost_price, reorder_level) "
-				+ "VALUES (?,?,?,?,?,?,?,?)";
+		String sql = "INSERT INTO products(code, name, category, unit, status, price_centavos, cost_price_centavos, reorder_level) "
+		        + "VALUES (?,?,?,?,?,?,?,?)";
 		try (PreparedStatement ps = c.prepareStatement(sql)) {
-			for (int i = 0; i < items.length; i++) {
-				String[] it = items[i];
-				double price = Double.parseDouble(it[3]);
-				ps.setString(1, String.format("PRD-%03d", i + 1));
-				ps.setString(2, it[1]);
-				ps.setString(3, it[0]);
-				ps.setString(4, it[2]);
-				ps.setString(5, "Active");
-				ps.setDouble(6, price);
-				ps.setDouble(7, Math.round(price * 0.8 * 100) / 100.0); // placeholder cost = 80% of price
-				ps.setDouble(8, 50);                                     // placeholder reorder level
-				ps.executeUpdate();
-			}
+		    for (int i = 0; i < items.length; i++) {
+		        String[] it = items[i];
+		        long priceCentavos = Long.parseLong(it[3]) * 100;
+		        ps.setString(1, String.format("PRD-%03d", i + 1));
+		        ps.setString(2, it[1]);
+		        ps.setString(3, it[0]);
+		        ps.setString(4, it[2]);
+		        ps.setString(5, "Active");
+		        ps.setLong(6, priceCentavos);
+		        ps.setLong(7, priceCentavos * 80 / 100); // placeholder cost = 80% of price
+		        ps.setDouble(8, 50);                     // placeholder reorder level
+		        ps.executeUpdate();
+		    }
 		}
-	}
-
-	private static void add(PreparedStatement ps, String code, String name, String cat, String unit, double price, double cost, double reorder) throws SQLException {
-		ps.setString(1, code);
-		ps.setString(2, name);
-		ps.setString(3, cat);
-		ps.setString(4, unit);
-		ps.setString(5, "Active");
-		ps.setDouble(6, price);
-		ps.setDouble(7, cost);
-		ps.setDouble(8, reorder);
-		ps.executeUpdate();
 	}
 	
 	private static void seedStock(Connection c) throws SQLException {
