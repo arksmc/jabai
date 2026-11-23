@@ -49,7 +49,7 @@ public class ClerkDashboard extends Dashboard {
         addSection("OUTLET");
         addPage("Inventory", () -> new InventoryScreen(locationId));
         addPage("Wallet", () -> new WalletScreen(actor, locationId));
-        addPage("Request Stock", () -> placeholder("Request Stock"));
+        addPage("Request Stock", () -> new RequestStockScreen(actor, locationId));
 
         start();
     }

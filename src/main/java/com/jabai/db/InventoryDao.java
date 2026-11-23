@@ -4,6 +4,7 @@ import com.jabai.model.Product;
 import com.jabai.model.MovementReason;
 import com.jabai.model.StockRow;
 import com.jabai.model.StockedProduct;
+import com.jabai.util.Format;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +26,8 @@ public class InventoryDao {
             ps.setInt(3, productId);
             ps.setDouble(4, qty);
             if (ps.executeUpdate() == 0) {
-                throw new InsufficientStockException(productId);
+                throw new InsufficientStockException(productId,
+                        describeShortage(c, locationId, productId, qty));
             }
         }
         logMovement(c, productId, locationId, -qty, reason, referenceId, userId);
@@ -85,6 +87,28 @@ public class InventoryDao {
             }
         }
         return rows;
+    }
+    
+    private String describeShortage(Connection c, int locationId, int productId, double needed)
+            throws SQLException {
+        String sql = """
+            SELECT p.name, p.unit, COALESCE(i.quantity, 0)
+            FROM products p
+            LEFT JOIN inventory i ON i.product_id = p.id AND i.location_id = ?
+            WHERE p.id = ?
+            """;
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, locationId);
+            ps.setInt(2, productId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return "Not enough stock for product id " + productId;
+                }
+                return "Not enough stock for " + rs.getString(1) + ": needed "
+                        + Format.qty(needed) + " " + rs.getString(2) + ", only "
+                        + Format.qty(rs.getDouble(3)) + " available.";
+            }
+        }
     }
     
 

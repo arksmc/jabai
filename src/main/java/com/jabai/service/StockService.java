@@ -3,25 +3,67 @@ package com.jabai.service;
 import com.jabai.db.Database;
 import com.jabai.db.InventoryDao;
 import com.jabai.db.LocationDao;
+import com.jabai.db.ProductDao;
+import com.jabai.db.StockRequestDao;
+import com.jabai.model.Manager;
 import com.jabai.model.MovementReason;
 import com.jabai.model.OrderLine;
+import com.jabai.model.Product;
+import com.jabai.model.RequestItemView;
 import com.jabai.model.RequestLine;
 import com.jabai.model.SendLine;
+import com.jabai.model.StockRequestSummary;
+import com.jabai.model.User;
+import com.jabai.util.Format;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 public class StockService {
+
+    private static final Set<String> WHOLE_UNITS = Set.of("pc", "packet");
+    private static final int MAX_NOTE_LENGTH = 300;
+
     private final InventoryDao inventoryDao = new InventoryDao();
     private final LocationDao locationDao = new LocationDao();
+    private final ProductDao productDao = new ProductDao();
 
     @FunctionalInterface
     private interface TxWork<T> {
         T run(Connection c) throws SQLException;
     }
 
-    /** Runs the work in one transaction: commit if it finishes, roll back if anything throws. */
+    private static boolean isWholeUnit(String unit) {
+        return unit != null && WHOLE_UNITS.contains(unit.trim().toLowerCase());
+    }
+
+    private static void requireManager(User actor) {
+        if (!(actor instanceof Manager)) {
+            throw new SecurityException("Only a manager can do this.");
+        }
+    }
+
+    private static String cleanNote(String text, boolean required, String label) {
+        String t = text == null ? "" : text.trim();
+        if (required && t.isEmpty()) {
+            throw new IllegalArgumentException(label + " is required.");
+        }
+        if (t.length() > MAX_NOTE_LENGTH) {
+            throw new IllegalArgumentException(label + " must be at most " + MAX_NOTE_LENGTH + " characters.");
+        }
+        return t.isEmpty() ? null : t;
+    }
+
     private <T> T inTransaction(TxWork<T> work) throws SQLException {
         try (Connection c = Database.connect()) {
             c.setAutoCommit(false);
@@ -44,11 +86,6 @@ public class StockService {
         }
     }
 
-    // ---------------------------------------------------------------
-    // Manager: order stock from a supplier
-    // ---------------------------------------------------------------
-
-    /** Creates an order. Stock does NOT change until the order is received. */
     public long createOrder(int managerId, String supplier, String notes,
                             List<OrderLine> lines) throws SQLException {
         if (supplier == null || supplier.isBlank()) {
@@ -82,10 +119,8 @@ public class StockService {
         });
     }
 
-    /** Marks an order received and adds its items to the WAREHOUSE only. */
     public void receiveOrder(long orderId, int userId) throws SQLException {
         inTransaction(c -> {
-            // The status guard stops the same order being received twice.
             try (PreparedStatement ps = c.prepareStatement(
                     "UPDATE stock_orders SET status = 'Received', received_at = datetime('now','localtime') "
                   + "WHERE id = ? AND status = 'Ordered'")) {
@@ -126,31 +161,61 @@ public class StockService {
         }
     }
 
-    // ---------------------------------------------------------------
-    // Clerk: request stock for their outlet
-    // ---------------------------------------------------------------
-
-    public long createRequest(int outletId, int clerkId, String note,
+    public long createRequest(User actor, int outletId, String note,
                               List<RequestLine> lines) throws SQLException {
-        if (lines.isEmpty()) {
+        if (actor == null || !actor.canAccessLocation(outletId)) {
+            throw new SecurityException("You cannot request stock for this outlet.");
+        }
+        if (lines == null || lines.isEmpty()) {
             throw new IllegalArgumentException("Request has no items.");
         }
+        String trimmedNote = cleanNote(note, false, "Note");
+
+        Map<Integer, Double> merged = new LinkedHashMap<>();
+        for (RequestLine l : lines) {
+            if (l == null || !Double.isFinite(l.quantity()) || l.quantity() <= 0) {
+                throw new IllegalArgumentException("Every quantity must be greater than zero.");
+            }
+            merged.merge(l.productId(), l.quantity(), Double::sum);
+        }
+
         return inTransaction(c -> {
+            int warehouseId = locationDao.findWarehouseId(c);
+            if (outletId == warehouseId) {
+                throw new IllegalArgumentException("The Main Warehouse cannot request stock from itself.");
+            }
+
+            for (Map.Entry<Integer, Double> e : merged.entrySet()) {
+                Optional<Product> found = productDao.findById(c, e.getKey());
+                if (found.isEmpty()) {
+                    throw new IllegalArgumentException("A selected product no longer exists.");
+                }
+                Product p = found.get();
+                if (!"Active".equalsIgnoreCase(p.getStatus())) {
+                    throw new IllegalArgumentException(p.getName() + " is inactive and cannot be requested.");
+                }
+                double qty = e.getValue();
+                if (isWholeUnit(p.getUnit()) && qty != Math.rint(qty)) {
+                    throw new IllegalArgumentException(
+                            p.getName() + " is counted by the " + p.getUnit() + " (whole numbers only).");
+                }
+            }
+
             long requestId;
             try (PreparedStatement ps = c.prepareStatement(
                     "INSERT INTO stock_requests(location_id, requested_by, note) VALUES (?,?,?)",
                     Statement.RETURN_GENERATED_KEYS)) {
                 ps.setInt(1, outletId);
-                ps.setInt(2, clerkId);
-                ps.setString(3, note);
+                ps.setInt(2, actor.getId());
+                ps.setString(3, trimmedNote);
                 requestId = insertAndGetId(ps);
             }
             try (PreparedStatement ps = c.prepareStatement(
                     "INSERT INTO stock_request_items(request_id, product_id, quantity_requested) VALUES (?,?,?)")) {
-                for (RequestLine l : lines) {
+                for (Map.Entry<Integer, Double> e : merged.entrySet()) {
                     ps.setLong(1, requestId);
-                    ps.setInt(2, l.productId());
-                    ps.setDouble(3, l.quantity());
+                    ps.setInt(2, e.getKey());
+                    ps.setDouble(3, e.getValue());
                     ps.executeUpdate();
                 }
             }
@@ -158,187 +223,144 @@ public class StockService {
         });
     }
 
-    // ---------------------------------------------------------------
-    // Manager: answer a request
-    // ---------------------------------------------------------------
+    public List<StockRequestSummary> requestsForLocation(User actor, int locationId) throws SQLException {
+        if (actor == null || !actor.canAccessLocation(locationId)) {
+            throw new SecurityException("You cannot view requests for this outlet.");
+        }
+        return StockRequestDao.findByLocation(locationId);
+    }
 
-    /**
-     * Sends stock from the warehouse to the outlet that made the request.
-     * The manager chooses the quantity per item. Only positive quantities should be included in lines
-     * Everything happens in one transaction: if the warehouse is short on any item, nothing moves.
-     */
+    public List<RequestItemView> requestItems(User actor, long requestId) throws SQLException {
+        int locationId;
+        try (Connection c = Database.connect();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT location_id FROM stock_requests WHERE id = ?")) {
+            ps.setLong(1, requestId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    throw new IllegalArgumentException("Stock request not found.");
+                }
+                locationId = rs.getInt(1);
+            }
+        }
+        if (actor == null || !actor.canAccessLocation(locationId)) {
+            throw new SecurityException("You cannot view this request.");
+        }
+        return StockRequestDao.findItems(requestId);
+    }
 
-    public void fulfillRequest(
-            long requestId,
-            int managerId,
-            List<SendLine> lines,
-            String responseNote) throws SQLException {
-
+    public void fulfillRequest(User actor, long requestId, List<SendLine> lines,
+                               String responseNote) throws SQLException {
+        requireManager(actor);
         if (lines == null || lines.isEmpty()) {
-            throw new IllegalArgumentException("No items supplied.");
+            throw new IllegalArgumentException("Send at least one item.");
+        }
+        String trimmedNote = cleanNote(responseNote, false, "Response note");
+        int managerId = actor.getId();
+
+        Set<Integer> seen = new HashSet<>();
+        for (SendLine line : lines) {
+            if (line == null || !Double.isFinite(line.quantity()) || line.quantity() <= 0) {
+                throw new IllegalArgumentException("Sent quantities must be greater than zero.");
+            }
+            if (!seen.add(line.productId())) {
+                throw new IllegalArgumentException("A product can only appear once in a fulfillment.");
+            }
         }
 
         inTransaction(c -> {
-
-            // 1. Retrieve request and verify its status.
-            String requestSql = """
-                    SELECT location_id, status
-                    FROM stock_requests
-                    WHERE id = ?
-                    """;
-
             int outletId;
-
-            try (PreparedStatement ps = c.prepareStatement(requestSql)) {
-
+            try (PreparedStatement ps = c.prepareStatement(
+                    "SELECT location_id, status FROM stock_requests WHERE id = ?")) {
                 ps.setLong(1, requestId);
-
                 try (ResultSet rs = ps.executeQuery()) {
-
                     if (!rs.next()) {
-                        throw new SQLException("Stock request not found.");
+                        throw new IllegalArgumentException("Stock request not found.");
                     }
-
                     outletId = rs.getInt("location_id");
-
                     if (!"Pending".equals(rs.getString("status"))) {
-                        throw new SQLException("Request is not pending.");
+                        throw new IllegalStateException("This request has already been handled.");
                     }
                 }
             }
 
-            // 2. Find warehouse.
             int warehouseId = locationDao.findWarehouseId(c);
 
-            // 3. Validate and process every submitted item.
-            java.util.Set<Integer> processedProducts = new java.util.HashSet<>();
-
             for (SendLine line : lines) {
-
-                if (line == null || line.quantity() <= 0) {
-                    throw new IllegalArgumentException(
-                            "Sent quantity must be greater than zero."
-                    );
-                }
-
-                // Prevent duplicate product entries.
-                if (!processedProducts.add(line.productId())) {
-                    throw new IllegalArgumentException(
-                            "A product can only appear once in a fulfillment."
-                    );
-                }
-
-                String itemSql = """
-                        SELECT quantity_requested
-                        FROM stock_request_items
-                        WHERE request_id = ?
-                        AND product_id = ?
-                        """;
-
-                double requestedQuantity;
-
-                try (PreparedStatement ps = c.prepareStatement(itemSql)) {
-
+                double requested;
+                String productName;
+                String unit;
+                try (PreparedStatement ps = c.prepareStatement("""
+                        SELECT sri.quantity_requested, p.name, p.unit
+                        FROM stock_request_items sri
+                        JOIN products p ON p.id = sri.product_id
+                        WHERE sri.request_id = ? AND sri.product_id = ?
+                        """)) {
                     ps.setLong(1, requestId);
                     ps.setInt(2, line.productId());
-
                     try (ResultSet rs = ps.executeQuery()) {
-
                         if (!rs.next()) {
-                            throw new SQLException(
-                                    "Product does not belong to this request: "
-                                    + line.productId()
-                            );
+                            throw new IllegalArgumentException("A selected product does not belong to this request.");
                         }
-
-                        requestedQuantity = rs.getDouble("quantity_requested");
+                        requested = rs.getDouble(1);
+                        productName = rs.getString(2);
+                        unit = rs.getString(3);
                     }
                 }
 
-                if (line.quantity() > requestedQuantity) {
-                    throw new SQLException(
-                            "Sent quantity exceeds requested quantity for product "
-                            + line.productId()
-                    );
+                if (isWholeUnit(unit) && line.quantity() != Math.rint(line.quantity())) {
+                    throw new IllegalArgumentException(
+                            productName + " is counted by the " + unit + " (whole numbers only).");
+                }
+                if (line.quantity() > requested) {
+                    throw new IllegalArgumentException("You can send at most " + Format.qty(requested)
+                            + " " + unit + " of " + productName + ".");
                 }
 
-                // Record the actual quantity sent.
-                String updateSql = """
-                        UPDATE stock_request_items
-                        SET quantity_sent = ?
-                        WHERE request_id = ?
-                        AND product_id = ?
-                        """;
-
-                try (PreparedStatement ps = c.prepareStatement(updateSql)) {
-
+                try (PreparedStatement ps = c.prepareStatement(
+                        "UPDATE stock_request_items SET quantity_sent = ? WHERE request_id = ? AND product_id = ?")) {
                     ps.setDouble(1, line.quantity());
                     ps.setLong(2, requestId);
                     ps.setInt(3, line.productId());
-
                     if (ps.executeUpdate() != 1) {
-                        throw new SQLException("Could not update requested item.");
+                        throw new IllegalStateException("Could not update " + productName + ".");
                     }
                 }
 
-                // Deduct from warehouse.
-                inventoryDao.decrease(
-                        c,
-                        warehouseId,
-                        line.productId(),
-                        line.quantity(),
-                        MovementReason.TRANSFER_OUT,
-                        requestId,
-                        managerId
-                );
-
-                // Add to outlet.
-                inventoryDao.increase(
-                        c,
-                        outletId,
-                        line.productId(),
-                        line.quantity(),
-                        MovementReason.TRANSFER_IN,
-                        requestId,
-                        managerId
-                );
+                inventoryDao.decrease(c, warehouseId, line.productId(), line.quantity(),
+                        MovementReason.TRANSFER_OUT, requestId, managerId);
+                inventoryDao.increase(c, outletId, line.productId(), line.quantity(),
+                        MovementReason.TRANSFER_IN, requestId, managerId);
             }
 
-            // 4. Mark request as fulfilled.
-            String updateRequestSql = """
+            try (PreparedStatement ps = c.prepareStatement("""
                     UPDATE stock_requests
                     SET status = 'Fulfilled',
                         response_note = ?,
-                        datetime('now','localtime'),
+                        resolved_at = datetime('now','localtime'),
                         resolved_by = ?
-                    WHERE id = ?
-                    AND status = 'Pending'
-                    """;
-
-            try (PreparedStatement ps = c.prepareStatement(updateRequestSql)) {
-
-                ps.setString(1, responseNote);
+                    WHERE id = ? AND status = 'Pending'
+                    """)) {
+                ps.setString(1, trimmedNote);
                 ps.setInt(2, managerId);
                 ps.setLong(3, requestId);
-
                 if (ps.executeUpdate() != 1) {
-                    throw new SQLException(
-                            "Could not update stock request status."
-                    );
+                    throw new IllegalStateException("This request has already been handled.");
                 }
             }
-
             return null;
         });
     }
 
-    public void rejectRequest(long requestId, int managerId, String reason) throws SQLException {
+    public void rejectRequest(User actor, long requestId, String reason) throws SQLException {
+        requireManager(actor);
+        String trimmedReason = cleanNote(reason, true, "A reason");
         try (Connection c = Database.connect();
              PreparedStatement ps = c.prepareStatement(
                      "UPDATE stock_requests SET status = 'Rejected', resolved_by = ?, response_note = ?, "
                    + "resolved_at = datetime('now','localtime') WHERE id = ? AND status = 'Pending'")) {
-            ps.setInt(1, managerId);
-            ps.setString(2, reason);
+            ps.setInt(1, actor.getId());
+            ps.setString(2, trimmedReason);
             ps.setLong(3, requestId);
             if (ps.executeUpdate() == 0) {
                 throw new IllegalStateException("This request has already been handled.");
