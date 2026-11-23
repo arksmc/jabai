@@ -1,7 +1,9 @@
 package com.jabai.db;
 
+import com.jabai.model.Product;
 import com.jabai.model.MovementReason;
 import com.jabai.model.StockRow;
+import com.jabai.model.StockedProduct;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
@@ -84,4 +86,63 @@ public class InventoryDao {
         }
         return rows;
     }
+    
+
+public List<StockedProduct> findStockedProducts(int locationId) throws SQLException {
+
+    List<StockedProduct> products = new ArrayList<>();
+
+    String sql = """
+            SELECT
+                p.id,
+                p.code,
+                p.name,
+                p.category,
+                p.unit,
+                p.status,
+                p.price_centavos,
+                p.cost_price_centavos,
+                p.reorder_level,
+                i.quantity
+            FROM inventory i
+            JOIN products p
+                ON i.product_id = p.id
+            WHERE i.location_id = ?
+            ORDER BY p.name
+            """;
+
+    try (Connection c = Database.connect();
+         PreparedStatement ps = c.prepareStatement(sql)) {
+
+        ps.setInt(1, locationId);
+
+        try (ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+
+                Product product = new Product(
+                    rs.getInt("id"),
+                    rs.getString("code"),
+                    rs.getString("name"),
+                    rs.getString("category"),
+                    rs.getString("unit"),
+                    rs.getString("status"),
+                    rs.getLong("price_centavos"),
+                    rs.getLong("cost_price_centavos"),
+                    rs.getDouble("reorder_level")
+                );
+
+                StockedProduct stockedProduct = new StockedProduct(
+                    product,
+                    rs.getDouble("quantity")
+                );
+
+                products.add(stockedProduct);
+            }
+        }
+    }
+
+    return products;
+}
+
 }

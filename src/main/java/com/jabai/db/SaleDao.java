@@ -1,6 +1,8 @@
 package com.jabai.db;
 
 import com.jabai.model.SaleLine;
+import com.jabai.model.SaleSummary;
+import com.jabai.model.SaleItemView;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -86,4 +88,99 @@ public class SaleDao {
             }
         }
     }
+    
+
+    public List<SaleSummary> findByLocation(int locationId) throws SQLException {
+
+    	List<SaleSummary> sales = new ArrayList<>();
+
+    	String sql = """
+    			SELECT
+    			     s.id,
+    			     l.name AS location_name,
+    			     u.full_name AS cashier_name,
+    			     s.total_centavos,
+    			     s.cash_tendered_centavos,
+    			     s.change_given_centavos,
+    			     s.created_at
+    			 FROM sales s
+    			 JOIN locations l
+    			     ON s.location_id = l.id
+    			 JOIN users u
+    			     ON s.user_id = u.id
+    			 WHERE s.location_id = ?
+    			 ORDER BY s.created_at DESC
+    			 """;
+
+    	try (Connection c = Database.connect();
+         PreparedStatement ps = c.prepareStatement(sql)) {
+
+    		ps.setInt(1, locationId);
+
+    		try (ResultSet rs = ps.executeQuery()) {
+
+    			while (rs.next()) {
+
+    				SaleSummary sale = new SaleSummary(
+    					rs.getLong("id"),
+    					rs.getString("location_name"),
+    					rs.getString("cashier_name"),
+    					rs.getLong("total_centavos"),
+    					rs.getLong("cash_tendered_centavos"),
+    					rs.getLong("change_given_centavos"),
+    					rs.getString("created_at")
+    				);
+
+    				sales.add(sale);
+    			}
+    		}
+    	}
+
+    	return sales;
+    }
+
+    public List<SaleItemView> findItems(long saleId) throws SQLException {
+
+    	List<SaleItemView> items = new ArrayList<>();
+
+    	String sql = """
+    			SELECT
+    			     p.code AS product_code,
+    			     p.name AS product_name,
+    			     p.unit,
+    			     si.quantity,
+    			     si.unit_price_centavos
+    			 FROM sale_items si
+    			 JOIN products p
+    			     ON si.product_id = p.id
+    			 WHERE si.sale_id = ?
+    			 ORDER BY p.name
+    			 """;
+
+    	try (Connection c = Database.connect();
+    		PreparedStatement ps = c.prepareStatement(sql)) {
+
+    		ps.setLong(1, saleId);
+
+    		try (ResultSet rs = ps.executeQuery()) {
+
+    			while (rs.next()) {
+
+    				SaleItemView item = new SaleItemView(
+    					rs.getString("product_code"),
+    					rs.getString("product_name"),
+    					rs.getString("unit"),
+    					rs.getDouble("quantity"),
+    					rs.getLong("unit_price_centavos")
+    				);
+
+    				items.add(item);
+    			}
+    		}
+    	}
+
+    	return items;
+    }
+
+    
 }

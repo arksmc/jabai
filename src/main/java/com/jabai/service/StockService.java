@@ -164,47 +164,170 @@ public class StockService {
 
     /**
      * Sends stock from the warehouse to the outlet that made the request.
-     * The manager chooses the quantity per item (0 = don't send that item).
+     * The manager chooses the quantity per item. Only positive quantities should be included in lines
      * Everything happens in one transaction: if the warehouse is short on any item, nothing moves.
      */
-    public void fulfillRequest(long requestId, int managerId, List<SendLine> sends,
-                               String responseNote) throws SQLException {
-        List<SendLine> toSend = sends.stream().filter(s -> s.quantity() > 0).toList();
-        if (toSend.isEmpty()) {
-            throw new IllegalArgumentException("Nothing to send. Reject the request instead.");
+
+    public void fulfillRequest(
+            long requestId,
+            int managerId,
+            List<SendLine> lines,
+            String responseNote) throws SQLException {
+
+        if (lines == null || lines.isEmpty()) {
+            throw new IllegalArgumentException("No items supplied.");
         }
+
         inTransaction(c -> {
-            try (PreparedStatement ps = c.prepareStatement(
-                    "UPDATE stock_requests SET status = 'Fulfilled', resolved_by = ?, response_note = ?, "
-                  + "resolved_at = datetime('now','localtime') WHERE id = ? AND status = 'Pending'")) {
-                ps.setInt(1, managerId);
-                ps.setString(2, responseNote);
-                ps.setLong(3, requestId);
-                if (ps.executeUpdate() == 0) {
-                    throw new IllegalStateException("This request has already been handled.");
-                }
-            }
 
-            int outletId = requestOutlet(c, requestId);
-            int warehouseId = locationDao.findWarehouseId(c);
+            // 1. Retrieve request and verify its status.
+            String requestSql = """
+                    SELECT location_id, status
+                    FROM stock_requests
+                    WHERE id = ?
+                    """;
 
-            for (SendLine send : toSend) {
-                try (PreparedStatement ps = c.prepareStatement(
-                        "UPDATE stock_request_items SET quantity_sent = ? "
-                      + "WHERE request_id = ? AND product_id = ?")) {
-                    ps.setDouble(1, send.quantity());
-                    ps.setLong(2, requestId);
-                    ps.setInt(3, send.productId());
-                    if (ps.executeUpdate() == 0) {
-                        throw new IllegalArgumentException(
-                                "Product " + send.productId() + " is not part of this request.");
+            int outletId;
+
+            try (PreparedStatement ps = c.prepareStatement(requestSql)) {
+
+                ps.setLong(1, requestId);
+
+                try (ResultSet rs = ps.executeQuery()) {
+
+                    if (!rs.next()) {
+                        throw new SQLException("Stock request not found.");
+                    }
+
+                    outletId = rs.getInt("location_id");
+
+                    if (!"Pending".equals(rs.getString("status"))) {
+                        throw new SQLException("Request is not pending.");
                     }
                 }
-                inventoryDao.decrease(c, warehouseId, send.productId(), send.quantity(),
-                        MovementReason.TRANSFER_OUT, requestId, managerId);
-                inventoryDao.increase(c, outletId, send.productId(), send.quantity(),
-                        MovementReason.TRANSFER_IN, requestId, managerId);
             }
+
+            // 2. Find warehouse.
+            int warehouseId = locationDao.findWarehouseId(c);
+
+            // 3. Validate and process every submitted item.
+            java.util.Set<Integer> processedProducts = new java.util.HashSet<>();
+
+            for (SendLine line : lines) {
+
+                if (line == null || line.quantity() <= 0) {
+                    throw new IllegalArgumentException(
+                            "Sent quantity must be greater than zero."
+                    );
+                }
+
+                // Prevent duplicate product entries.
+                if (!processedProducts.add(line.productId())) {
+                    throw new IllegalArgumentException(
+                            "A product can only appear once in a fulfillment."
+                    );
+                }
+
+                String itemSql = """
+                        SELECT quantity_requested
+                        FROM stock_request_items
+                        WHERE request_id = ?
+                        AND product_id = ?
+                        """;
+
+                double requestedQuantity;
+
+                try (PreparedStatement ps = c.prepareStatement(itemSql)) {
+
+                    ps.setLong(1, requestId);
+                    ps.setInt(2, line.productId());
+
+                    try (ResultSet rs = ps.executeQuery()) {
+
+                        if (!rs.next()) {
+                            throw new SQLException(
+                                    "Product does not belong to this request: "
+                                    + line.productId()
+                            );
+                        }
+
+                        requestedQuantity = rs.getDouble("quantity_requested");
+                    }
+                }
+
+                if (line.quantity() > requestedQuantity) {
+                    throw new SQLException(
+                            "Sent quantity exceeds requested quantity for product "
+                            + line.productId()
+                    );
+                }
+
+                // Record the actual quantity sent.
+                String updateSql = """
+                        UPDATE stock_request_items
+                        SET quantity_sent = ?
+                        WHERE request_id = ?
+                        AND product_id = ?
+                        """;
+
+                try (PreparedStatement ps = c.prepareStatement(updateSql)) {
+
+                    ps.setDouble(1, line.quantity());
+                    ps.setLong(2, requestId);
+                    ps.setInt(3, line.productId());
+
+                    if (ps.executeUpdate() != 1) {
+                        throw new SQLException("Could not update requested item.");
+                    }
+                }
+
+                // Deduct from warehouse.
+                inventoryDao.decrease(
+                        c,
+                        warehouseId,
+                        line.productId(),
+                        line.quantity(),
+                        MovementReason.TRANSFER_OUT,
+                        requestId,
+                        managerId
+                );
+
+                // Add to outlet.
+                inventoryDao.increase(
+                        c,
+                        outletId,
+                        line.productId(),
+                        line.quantity(),
+                        MovementReason.TRANSFER_IN,
+                        requestId,
+                        managerId
+                );
+            }
+
+            // 4. Mark request as fulfilled.
+            String updateRequestSql = """
+                    UPDATE stock_requests
+                    SET status = 'Fulfilled',
+                        response_note = ?,
+                        datetime('now','localtime'),
+                        resolved_by = ?
+                    WHERE id = ?
+                    AND status = 'Pending'
+                    """;
+
+            try (PreparedStatement ps = c.prepareStatement(updateRequestSql)) {
+
+                ps.setString(1, responseNote);
+                ps.setInt(2, managerId);
+                ps.setLong(3, requestId);
+
+                if (ps.executeUpdate() != 1) {
+                    throw new SQLException(
+                            "Could not update stock request status."
+                    );
+                }
+            }
+
             return null;
         });
     }
@@ -219,16 +342,6 @@ public class StockService {
             ps.setLong(3, requestId);
             if (ps.executeUpdate() == 0) {
                 throw new IllegalStateException("This request has already been handled.");
-            }
-        }
-    }
-
-    private int requestOutlet(Connection c, long requestId) throws SQLException {
-        try (PreparedStatement ps = c.prepareStatement("SELECT location_id FROM stock_requests WHERE id = ?")) {
-            ps.setLong(1, requestId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getInt(1);
-                throw new IllegalArgumentException("Request not found.");
             }
         }
     }
