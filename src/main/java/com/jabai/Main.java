@@ -33,7 +33,7 @@ public class Main extends Application {
 
         stage.setTitle("Bagsakan");
         stage.setScene(scene);
-        try (var in = getClass().getResourceAsStream("/images/logo.png")) {
+        try (var in = getClass().getResourceAsStream("/images/icon.png")) {
             if (in != null) stage.getIcons().add(new Image(in));
         } catch (java.io.IOException ignored) {
         }
