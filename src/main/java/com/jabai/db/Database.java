@@ -1,6 +1,7 @@
 package com.jabai.db;
 
 import com.jabai.util.PasswordUtil;
+import com.jabai.util.Barcode;
 
 import java.sql.*;
 
@@ -220,7 +221,7 @@ public class Database {
 		    for (int i = 0; i < items.length; i++) {
 		        String[] it = items[i];
 		        long priceCentavos = Long.parseLong(it[3]) * 100;
-		        ps.setString(1, String.format("PRD-%03d", i + 1));
+		        ps.setString(1, Barcode.ean13(i + 1));
 		        ps.setString(2, it[1]);
 		        ps.setString(3, it[0]);
 		        ps.setString(4, it[2]);

@@ -33,4 +33,25 @@ final class TableCols {
         });
         return col;
     }
+    
+    /** Plain colored status text. styleFor maps a status to a CSS class like "status-low". */
+    static <S> TableColumn<S, String> status(String title, Function<S, String> getter,
+                                             Function<String, String> styleFor) {
+        TableColumn<S, String> col = text(title, getter);
+        col.setCellFactory(c -> new TableCell<>() {
+            @Override
+            protected void updateItem(String status, boolean empty) {
+                super.updateItem(status, empty);
+                getStyleClass().removeAll("status-ok", "status-low", "status-out",
+                        "status-info", "status-muted");
+                if (empty || status == null) {
+                    setText(null);
+                    return;
+                }
+                setText(status);
+                getStyleClass().add(styleFor.apply(status));
+            }
+        });
+        return col;
+    }
 }

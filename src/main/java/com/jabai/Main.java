@@ -15,6 +15,7 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
+import javafx.scene.image.Image;
 
 public class Main extends Application {
 
@@ -32,6 +33,10 @@ public class Main extends Application {
 
         stage.setTitle("Bagsakan");
         stage.setScene(scene);
+        try (var in = getClass().getResourceAsStream("/images/logo.png")) {
+            if (in != null) stage.getIcons().add(new Image(in));
+        } catch (java.io.IOException ignored) {
+        }
         stage.show();
     }
 

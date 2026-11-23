@@ -41,13 +41,15 @@ public class AddProductScreen extends VBox {
         }
 
         form.addRow(0, new Label("Product name *"), name);
-        form.addRow(1, new Label("Product code *"), code);
+        form.addRow(1, new Label("Barcode *"), code);
         form.addRow(2, new Label("Category *"), category);
         form.addRow(3, new Label("Unit of measure *"), unit);
         form.addRow(4, new Label("Status"), status);
         form.addRow(5, new Label("Selling price (PHP) *"), sellingPrice);
         form.addRow(6, new Label("Cost price (PHP)"), costPrice);
         form.addRow(7, new Label("Reorder level"), reorderLevel);
+        
+        code.setPromptText("e.g. 4800001000018");
 
         Button cancel = new Button("Cancel");
         Button save = new Button("Save product");

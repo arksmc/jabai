@@ -8,6 +8,9 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.Node;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 
 /** Split screen used before login: brand/hero on the left, the form on the right. */
 public class AuthLayout extends HBox {
@@ -72,8 +75,7 @@ public class AuthLayout extends HBox {
     // ---------- Left side ----------
 
     private VBox buildHero() {
-        Label logo = new Label("B");
-        logo.getStyleClass().add("auth-logo");
+    	Node logo = buildLogo();
 
         Label line1 = new Label("Fresh stock,");
         Label line2 = new Label("every outlet.");
@@ -92,35 +94,35 @@ public class AuthLayout extends HBox {
 
     /** A few overlapping mock cards that hint at what the app does. */
     private StackPane buildArt() {
-        VBox warehouse = card("Main Warehouse", "Sinandomeng", "200 kg", "In Stock", "badge-ok");
-        VBox outlet = card("Outlet 1", "Galunggong", "10 kg", "Low Stock", "badge-low");
-        VBox order = card("Stock order PO-0001", "Benguet Farms Coop", "12 items", "Ordered", "badge-info");
+        VBox warehouse = card("Main Warehouse", "Sinandomeng", "200 kg", "In Stock", "status-ok");
+        VBox outlet = card("Outlet 1", "Galunggong", "10 kg", "Low Stock", "status-low");
+        VBox order = card("Stock order 2611230001", "Benguet Farms Coop", "12 items", "Ordered", "status-info");
 
         warehouse.setTranslateX(-60);
-        warehouse.setTranslateY(-80);
+        warehouse.setTranslateY(-100);
         outlet.setTranslateX(60);
         outlet.setTranslateY(0);
         order.setTranslateX(-30);
-        order.setTranslateY(80);
+        order.setTranslateY(100);
 
         StackPane art = new StackPane(warehouse, outlet, order);
         art.setAlignment(Pos.CENTER);
         return art;
     }
 
-    private VBox card(String where, String product, String qty, String badgeText, String badgeStyle) {
+    private VBox card(String where, String product, String qty, String statusText, String statusStyle) {
         Label w = new Label(where);
         w.getStyleClass().add("auth-card-meta");
         Label p = new Label(product);
         p.getStyleClass().add("auth-card-title");
         Label q = new Label(qty);
         q.getStyleClass().add("auth-card-meta");
-        Label badge = new Label(badgeText);
-        badge.getStyleClass().addAll("badge", badgeStyle);
+        Label status = new Label(statusText);
+        status.getStyleClass().add(statusStyle);
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox row = new HBox(8, q, spacer, badge);
+        HBox row = new HBox(8, q, spacer, status);
         row.setAlignment(Pos.CENTER_LEFT);
 
         VBox card = new VBox(6, w, p, row);
@@ -128,5 +130,22 @@ public class AuthLayout extends HBox {
         card.setPrefWidth(250);
         card.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         return card;
+    }
+    
+    /** Loads /images/logo.png; falls back to the letter badge if the file isn't there. */
+    private Node buildLogo() {
+        var url = getClass().getResource("/images/logo.png");
+        if (url == null) {
+            Label fallback = new Label("B");
+            fallback.getStyleClass().add("auth-logo");
+            return fallback;
+        }
+     // Load at 2x so it stays sharp on high-DPI screens, then display at 52px tall.
+        ImageView view = new ImageView(new Image(url.toExternalForm(), 0, 104, true, true));
+        view.setFitHeight(52);
+        view.setFitHeight(48);
+        view.setPreserveRatio(true);
+        view.setSmooth(true);
+        return view;
     }
 }

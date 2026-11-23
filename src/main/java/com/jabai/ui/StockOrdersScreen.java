@@ -82,10 +82,14 @@ public class StockOrdersScreen extends VBox {
         orderTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
         orderTable.setPlaceholder(new Label("No stock orders yet. Click \"+ New order\" to create one."));
 
-        orderTable.getColumns().add(TableCols.<StockOrderSummary>number("Order",
-                o -> o.id(), v -> orderCode((long) v)));
+        orderTable.getColumns().add(TableCols.<StockOrderSummary>text("Order", StockOrdersScreen::orderCode));
         orderTable.getColumns().add(TableCols.<StockOrderSummary>text("Supplier", StockOrderSummary::supplier));
-        orderTable.getColumns().add(statusColumn());
+        orderTable.getColumns().add(TableCols.<StockOrderSummary>status("Status", StockOrderSummary::status,
+                s -> switch (s) {
+                    case "Received" -> "status-ok";
+                    case "Ordered" -> "status-info";
+                    default -> "status-muted";
+                }));
         orderTable.getColumns().add(TableCols.<StockOrderSummary>number("Items",
                 o -> o.itemCount(), v -> String.valueOf((long) v)));
         orderTable.getColumns().add(TableCols.<StockOrderSummary>number("Total",
@@ -105,7 +109,7 @@ public class StockOrdersScreen extends VBox {
         itemTable.setPlaceholder(new Label("Nothing to show."));
         VBox.setVgrow(itemTable, Priority.ALWAYS);
 
-        itemTable.getColumns().add(TableCols.<OrderItemView>text("Code", OrderItemView::code));
+        itemTable.getColumns().add(TableCols.<OrderItemView>text("Barcode", OrderItemView::code));
         itemTable.getColumns().add(TableCols.<OrderItemView>text("Product", OrderItemView::name));
         itemTable.getColumns().add(TableCols.<OrderItemView>text("Quantity",
                 i -> Format.qty(i.quantity()) + " " + i.unit()));
@@ -130,35 +134,17 @@ public class StockOrdersScreen extends VBox {
 
     // ---------- Columns ----------
 
-    private TableColumn<StockOrderSummary, String> statusColumn() {
-        TableColumn<StockOrderSummary, String> col = new TableColumn<>("Status");
-        col.setCellValueFactory(cd -> new javafx.beans.property.SimpleStringProperty(cd.getValue().status()));
-        col.setCellFactory(c -> new TableCell<>() {
-            @Override
-            protected void updateItem(String status, boolean empty) {
-                super.updateItem(status, empty);
-                if (empty || status == null) {
-                    setGraphic(null);
-                    return;
-                }
-                Label badge = new Label(status);
-                badge.getStyleClass().add("badge");
-                badge.getStyleClass().add(switch (status) {
-                    case "Received" -> "badge-ok";
-                    case "Ordered" -> "badge-info";
-                    default -> "badge-muted";
-                });
-                setGraphic(badge);
-                setText(null);
-            }
-        });
-        return col;
-    }
+    
 
-    private static String orderCode(long id) {
-        return String.format("PO-%04d", id);
+    /** Date + id, e.g. created 2026-11-23 with id 12 -> "2611230012". */
+    private static String orderCode(StockOrderSummary o) {
+        String d = o.createdAt(); // "2026-11-23 09:03:11"
+        String ymd = (d != null && d.length() >= 10)
+                ? d.substring(2, 4) + d.substring(5, 7) + d.substring(8, 10)
+                : "000000";
+        return ymd + String.format("%04d", o.id());
     }
-
+    
     private static String shortDate(String s) {
         return s != null && s.length() >= 16 ? s.substring(0, 16) : s;
     }
@@ -193,7 +179,7 @@ public class StockOrdersScreen extends VBox {
         } catch (Exception ex) {
             error(ex.getMessage());
         }
-        itemsHeading.setText(orderCode(sel.id()) + "  ·  " + sel.supplier());
+        itemsHeading.setText(orderCode(sel) + "  ·  " + sel.supplier());
         boolean waiting = "Ordered".equals(sel.status());
         receiveBtn.setDisable(!waiting);
         cancelBtn.setDisable(!waiting);
@@ -223,7 +209,7 @@ public class StockOrdersScreen extends VBox {
         if (o == null) return;
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
-                "Mark " + orderCode(o.id()) + " as received?\n\n"
+                "Mark " + orderCode(o) + " as received?\n\n"
               + "Its items will be added to the Main Warehouse stock. Outlet stock is not affected.");
         confirm.initOwner(getScene().getWindow());
         if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
@@ -241,7 +227,7 @@ public class StockOrdersScreen extends VBox {
         if (o == null) return;
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
-                "Cancel " + orderCode(o.id()) + "? This can't be undone.");
+                "Cancel " + orderCode(o) + "? This can't be undone.");
         confirm.initOwner(getScene().getWindow());
         if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
 

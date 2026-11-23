@@ -10,7 +10,6 @@ import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -51,7 +50,7 @@ public class InventoryScreen extends VBox {
         }
         locationBox.setOnAction(e -> refresh());
 
-        searchField.setPromptText("Search code, product or category...");
+        searchField.setPromptText("Search barcode, product or category...");
         searchField.setPrefWidth(280);
         searchField.getStyleClass().add("search-field");
         searchField.textProperty().addListener((obs, oldV, newV) -> applyFilter());
@@ -81,46 +80,23 @@ public class InventoryScreen extends VBox {
         table.setPlaceholder(new Label("No items match your filters."));
         VBox.setVgrow(table, Priority.ALWAYS);
 
-        table.getColumns().add(TableCols.<InventoryItem>text("Code", InventoryItem::getCode));
+        table.getColumns().add(TableCols.<InventoryItem>text("Barcode", InventoryItem::getCode));
         table.getColumns().add(TableCols.<InventoryItem>text("Product", InventoryItem::getName));
         table.getColumns().add(TableCols.<InventoryItem>text("Category", InventoryItem::getCategory));
         table.getColumns().add(TableCols.<InventoryItem>text("Unit", InventoryItem::getUnit));
         table.getColumns().add(TableCols.<InventoryItem>number("Quantity", InventoryItem::getQuantity, Format::qty));
         table.getColumns().add(TableCols.<InventoryItem>number("Reorder Level", InventoryItem::getReorderLevel, Format::qty));
-        table.getColumns().add(statusColumn());
+        table.getColumns().add(TableCols.<InventoryItem>status("Stock Status", InventoryItem::getStockStatus,
+                s -> switch (s) {
+                    case "Out of Stock" -> "status-out";
+                    case "Low Stock" -> "status-low";
+                    default -> "status-ok";
+                }));
 
         getChildren().addAll(heading, controls, table);
 
         refresh();
     }
-
-    /** Colored pill: green = In Stock, orange = Low Stock, red = Out of Stock. */
-    private TableColumn<InventoryItem, String> statusColumn() {
-        TableColumn<InventoryItem, String> col = new TableColumn<>("Stock Status");
-        col.setCellValueFactory(new PropertyValueFactory<>("stockStatus"));
-        col.setCellFactory(c -> new TableCell<>() {
-            @Override
-            protected void updateItem(String status, boolean empty) {
-                super.updateItem(status, empty);
-                if (empty || status == null) {
-                    setGraphic(null);
-                    setText(null);
-                    return;
-                }
-                Label badge = new Label(status);
-                badge.getStyleClass().add("badge");
-                badge.getStyleClass().add(switch (status) {
-                    case "Out of Stock" -> "badge-out";
-                    case "Low Stock" -> "badge-low";
-                    default -> "badge-ok";
-                });
-                setGraphic(badge);
-                setText(null);
-            }
-        });
-        return col;
-    }
-
 
     private void applyFilter() {
         String q = searchField.getText() == null ? "" : searchField.getText().trim().toLowerCase();

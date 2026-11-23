@@ -12,7 +12,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -52,7 +51,7 @@ public class ProductScreen extends VBox {
         header.setAlignment(Pos.CENTER_LEFT);
 
         // Filters
-        searchField.setPromptText("Search code, name or category...");
+        searchField.setPromptText("Search barcode, name or category...");
         searchField.setPrefWidth(280);
         searchField.getStyleClass().add("search-field");
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
@@ -85,11 +84,12 @@ public class ProductScreen extends VBox {
                 Product::getCostPriceCentavos, v -> Money.format((long) v));
         costCol.setVisible(false); // hidden by default; toggle from the header menu
 
-        table.getColumns().add(TableCols.<Product>text("Code", Product::getCode));
+        table.getColumns().add(TableCols.<Product>text("Barcode", Product::getCode));
         table.getColumns().add(TableCols.<Product>text("Name", Product::getName));
         table.getColumns().add(TableCols.<Product>text("Category", Product::getCategory));
         table.getColumns().add(TableCols.<Product>text("Unit", Product::getUnit));
-        table.getColumns().add(statusColumn());
+        table.getColumns().add(TableCols.<Product>status("Status", Product::getStatus,
+                s -> "Active".equalsIgnoreCase(s) ? "status-ok" : "status-muted"));
         table.getColumns().add(TableCols.<Product>number("Price",
                 Product::getPriceCentavos, v -> Money.format((long) v)));
         table.getColumns().add(costCol);
@@ -99,26 +99,7 @@ public class ProductScreen extends VBox {
         refresh();
     }
     
-    private TableColumn<Product, String> statusColumn() {
-        TableColumn<Product, String> col = new TableColumn<>("Status");
-        col.setCellValueFactory(new PropertyValueFactory<>("status"));
-        col.setCellFactory(c -> new TableCell<>() {
-            @Override
-            protected void updateItem(String status, boolean empty) {
-                super.updateItem(status, empty);
-                if (empty || status == null) {
-                    setGraphic(null);
-                    return;
-                }
-                Label badge = new Label(status);
-                badge.getStyleClass().add("badge");
-                badge.getStyleClass().add("Active".equalsIgnoreCase(status) ? "badge-ok" : "badge-muted");
-                setGraphic(badge);
-                setText(null);
-            }
-        });
-        return col;
-    }
+ 
 
     // ---------- Filtering ----------
 
