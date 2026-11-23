@@ -1,7 +1,10 @@
 package com.jabai.db;
 
 import com.jabai.model.MovementReason;
-
+import com.jabai.model.StockRow;
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -55,5 +58,30 @@ public class InventoryDao {
             ps.setInt(6, userId);
             ps.executeUpdate();
         }
+    }
+    
+    /** Every product with its quantity at one location (0 if it has no inventory row). */
+    public List<StockRow> findStock(int locationId) throws SQLException {
+        String sql = """
+            SELECT p.id, p.code, p.name, p.category, p.unit, p.status, p.price_centavos,
+                   COALESCE(i.quantity, 0) AS quantity, p.reorder_level
+            FROM products p
+            LEFT JOIN inventory i ON i.product_id = p.id AND i.location_id = ?
+            ORDER BY p.category, p.name
+            """;
+        List<StockRow> rows = new ArrayList<>();
+        try (Connection c = Database.connect(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, locationId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new StockRow(
+                            rs.getInt("id"), rs.getString("code"), rs.getString("name"),
+                            rs.getString("category"), rs.getString("unit"), rs.getString("status"),
+                            rs.getLong("price_centavos"), rs.getDouble("quantity"),
+                            rs.getDouble("reorder_level")));
+                }
+            }
+        }
+        return rows;
     }
 }

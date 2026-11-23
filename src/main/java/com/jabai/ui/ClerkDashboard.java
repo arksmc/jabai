@@ -1,37 +1,69 @@
 package com.jabai.ui;
 
 import com.jabai.model.Clerk;
+import com.jabai.model.Manager;
+import com.jabai.model.User;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 
-public class ClerkDashboard extends BorderPane {
+/**
+ * Dashboard for one outlet. Works for a Clerk (their own outlet) or for a Manager
+ * who opened a clerk's outlet ("view as clerk"). The acting user is what gets recorded
+ * on sales/donations/voids; the services check user.canAccessLocation(locationId).
+ */
+public class ClerkDashboard extends Dashboard {
 
+    private final User actor;
+    private final int locationId;
+    private final String locationName;
+
+    /** Normal clerk login: same call shape as before, so Main doesn't change. */
     public ClerkDashboard(Clerk clerk, Runnable onLogout) {
-        Label who = new Label("Clerk: " + clerk.getFullName() + "  |  " + clerk.getLocationName());
+        this(clerk, clerk.getLocationId(), clerk.getLocationName(), onLogout);
+    }
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
+    /** General form: any user + the outlet to operate on. */
+    public ClerkDashboard(User actor, int locationId, String locationName, Runnable onExit) {
+        super(actor,
+              actor instanceof Manager ? "Manager (outlet view)" : "Clerk  |  " + locationName,
+              actor instanceof Manager ? "Back to Manager" : "Log out",
+              onExit);
+        this.actor = actor;
+        this.locationId = locationId;
+        this.locationName = locationName;
 
-        Button logoutBtn = new Button("Logout");
-        logoutBtn.setOnAction(e -> onLogout.run());
+        if (actor instanceof Manager) {
+            Label l = new Label("Viewing " + locationName + " as Manager. Actions are recorded under your name.");
+            l.getStyleClass().add("view-as-banner-text");
+            HBox banner = new HBox(l);
+            banner.getStyleClass().add("view-as-banner");
+            setBanner(banner);
+        }
 
-        HBox bar = new HBox(8, who, spacer, logoutBtn);
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.setPadding(new Insets(10));
-        bar.setStyle("-fx-background-color: #e9ecef;");
+        addSection("SELL");
+        addPage("Sales", () -> new SalesScreen(actor, locationId));
+        addPage("Transactions", () -> placeholder("Transaction History (with Void)"));
+        addSection("OUTLET");
+        addPage("Inventory", () -> new InventoryScreen(locationId));
+        addPage("Wallet", () -> placeholder("Wallet & Cash Donations"));
+        addPage("Request Stock", () -> placeholder("Request Stock"));
 
-        Label welcome = new Label("Welcome, " + clerk.getFullName() + ".\nOutlet: "
-                + clerk.getLocationName()
-                + "\n\nSales, outlet inventory, and cash transactions will appear here in the next phases.");
-        welcome.setPadding(new Insets(24));
+        start();
+    }
 
-        setTop(bar);
-        setCenter(welcome);
+    public User getActor() { return actor; }
+    public int getLocationId() { return locationId; }
+    public String getLocationName() { return locationName; }
+
+    private Node placeholder(String title) {
+        Label t = new Label(title);
+        t.getStyleClass().add("page-title");
+        Label s = new Label("Coming next. Outlet: " + locationName);
+        VBox box = new VBox(8, t, s);
+        box.setPadding(new Insets(4));
+        return box;
     }
 }

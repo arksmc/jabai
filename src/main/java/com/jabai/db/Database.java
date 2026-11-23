@@ -67,17 +67,21 @@ public class Database {
 	                )
 	            )""");
 	        s.execute("""
-	            CREATE TABLE IF NOT EXISTS sales (
-	                id INTEGER PRIMARY KEY AUTOINCREMENT,
-	                location_id INTEGER NOT NULL REFERENCES locations(id),
-	                user_id INTEGER NOT NULL REFERENCES users(id),
-	                total_centavos INTEGER NOT NULL CHECK (total_centavos >= 0),
-	                cash_tendered_centavos INTEGER NOT NULL,
-	                change_given_centavos INTEGER NOT NULL,
-	                created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
-	                CHECK (cash_tendered_centavos >= total_centavos),
-	                CHECK (change_given_centavos = cash_tendered_centavos - total_centavos)
-	            )""");
+	        	    CREATE TABLE IF NOT EXISTS sales (
+	        	        id INTEGER PRIMARY KEY AUTOINCREMENT,
+	        	        location_id INTEGER NOT NULL REFERENCES locations(id),
+	        	        user_id INTEGER NOT NULL REFERENCES users(id),
+	        	        total_centavos INTEGER NOT NULL CHECK (total_centavos >= 0),
+	        	        cash_tendered_centavos INTEGER NOT NULL,
+	        	        change_given_centavos INTEGER NOT NULL,
+	        	        status TEXT NOT NULL DEFAULT 'Completed' CHECK (status IN ('Completed', 'Voided')),
+	        	        voided_at TEXT,
+	        	        voided_by INTEGER REFERENCES users(id),
+	        	        void_reason TEXT,
+	        	        created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+	        	        CHECK (cash_tendered_centavos >= total_centavos),
+	        	        CHECK (change_given_centavos = cash_tendered_centavos - total_centavos)
+	        	    )""");
 	        s.execute("""
 	            CREATE TABLE IF NOT EXISTS sale_items (
 	                id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,6 +90,27 @@ public class Database {
 	                quantity REAL NOT NULL CHECK (quantity > 0),
 	                unit_price_centavos INTEGER NOT NULL CHECK (unit_price_centavos >= 0)
 	            )""");
+	        s.execute("""
+	        	    CREATE TABLE IF NOT EXISTS donations (
+	        	        id INTEGER PRIMARY KEY AUTOINCREMENT,
+	        	        donor_name TEXT NOT NULL,
+	        	        type TEXT NOT NULL CHECK (type IN ('CASH', 'ITEM')),
+	        	        amount_centavos INTEGER NOT NULL DEFAULT 0,
+	        	        product_id INTEGER REFERENCES products(id),
+	        	        quantity REAL NOT NULL DEFAULT 0,
+	        	        location_id INTEGER NOT NULL REFERENCES locations(id),
+	        	        user_id INTEGER NOT NULL REFERENCES users(id),
+	        	        status TEXT NOT NULL DEFAULT 'Completed' CHECK (status IN ('Completed', 'Voided')),
+	        	        voided_at TEXT,
+	        	        voided_by INTEGER REFERENCES users(id),
+	        	        void_reason TEXT,
+	        	        created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+	        	        CHECK (
+	        	            (type = 'CASH' AND amount_centavos > 0 AND product_id IS NULL AND quantity = 0) OR
+	        	            (type = 'ITEM' AND product_id IS NOT NULL AND quantity > 0 AND amount_centavos = 0)
+	        	        )
+	        	    )""");
+	        s.execute("CREATE INDEX IF NOT EXISTS idx_donations_location_date ON donations(location_id, created_at)"); 
 	        s.execute("""
 	        	    CREATE TABLE IF NOT EXISTS stock_movements (
 	        	        id INTEGER PRIMARY KEY AUTOINCREMENT,

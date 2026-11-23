@@ -1,12 +1,14 @@
 package com.jabai.ui;
 
-import com.jabai.db.Database;
+import com.jabai.db.InventoryDao;
 import com.jabai.db.LocationDao;
 import com.jabai.model.Location;
+import com.jabai.model.StockRow;
 import com.jabai.util.Format;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -14,49 +16,44 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-import javafx.collections.transformation.SortedList;
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 
+import java.sql.SQLException;
+import java.util.List;
 
 public class InventoryScreen extends VBox {
 
-    private final TableView<InventoryItem> table = new TableView<>();
-    private final ObservableList<InventoryItem> data = FXCollections.observableArrayList();
-    private final FilteredList<InventoryItem> filtered = new FilteredList<>(data, i -> true);
-
+    private final InventoryDao inventoryDao = new InventoryDao();
     private final LocationDao locationDao = new LocationDao();
+    private final Integer fixedLocationId; // null = manager picks a location
+
+    private final TableView<StockRow> table = new TableView<>();
+    private final ObservableList<StockRow> data = FXCollections.observableArrayList();
+    private final FilteredList<StockRow> filtered = new FilteredList<>(data, i -> true);
+
     private final ComboBox<Location> locationBox = new ComboBox<>();
     private final TextField searchField = new TextField();
     private final CheckBox lowOnly = new CheckBox("Low / out of stock only");
     private final Label countLabel = new Label();
 
+    /** Manager version: choose any location. */
     public InventoryScreen() {
+        this(null);
+    }
+
+    /** Clerk version: locked to one location. */
+    public InventoryScreen(Integer fixedLocationId) {
+        this.fixedLocationId = fixedLocationId;
         setSpacing(12);
         setPadding(new Insets(10));
 
-        Label heading = new Label("Inventory Management");
+        Label heading = new Label(fixedLocationId == null ? "Inventory Management" : "Outlet Inventory");
         heading.getStyleClass().add("page-title");
-
-        // Controls
-        try {
-            locationBox.getItems().setAll(locationDao.findAll());
-            if (!locationBox.getItems().isEmpty()) {
-                locationBox.setValue(locationBox.getItems().get(0)); // warehouse comes first
-            }
-        } catch (SQLException ex) {
-            new Alert(Alert.AlertType.ERROR, "Failed to load locations: " + ex.getMessage()).show();
-        }
-        locationBox.setOnAction(e -> refresh());
 
         searchField.setPromptText("Search barcode, product or category...");
         searchField.setPrefWidth(280);
         searchField.getStyleClass().add("search-field");
-        searchField.textProperty().addListener((obs, oldV, newV) -> applyFilter());
-
+        searchField.textProperty().addListener((obs, o, n) -> applyFilter());
         lowOnly.setOnAction(e -> applyFilter());
-
         countLabel.getStyleClass().add("muted-label");
 
         Button refreshBtn = new Button("Refresh");
@@ -66,27 +63,34 @@ public class InventoryScreen extends VBox {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        HBox controls = new HBox(10,
-                new Label("Location:"), locationBox,
-                searchField, lowOnly,
-                spacer, countLabel, refreshBtn);
+        HBox controls = new HBox(10);
         controls.setAlignment(Pos.CENTER_LEFT);
+        if (fixedLocationId == null) {
+            try {
+                locationBox.getItems().setAll(locationDao.findAll());
+                if (!locationBox.getItems().isEmpty()) locationBox.setValue(locationBox.getItems().get(0));
+            } catch (SQLException ex) {
+                new Alert(Alert.AlertType.ERROR, "Failed to load locations: " + ex.getMessage()).show();
+            }
+            locationBox.setOnAction(e -> refresh());
+            controls.getChildren().addAll(new Label("Location:"), locationBox);
+        }
+        controls.getChildren().addAll(searchField, lowOnly, spacer, countLabel, refreshBtn);
 
-        // Table
-        SortedList<InventoryItem> sorted = new SortedList<>(filtered);
+        SortedList<StockRow> sorted = new SortedList<>(filtered);
         sorted.comparatorProperty().bind(table.comparatorProperty());
         table.setItems(sorted);
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
         table.setPlaceholder(new Label("No items match your filters."));
         VBox.setVgrow(table, Priority.ALWAYS);
 
-        table.getColumns().add(TableCols.<InventoryItem>primary("Product", InventoryItem::getName));
-        table.getColumns().add(TableCols.<InventoryItem>text("Category", InventoryItem::getCategory));
-        table.getColumns().add(TableCols.<InventoryItem>muted("Barcode", InventoryItem::getCode));
-        table.getColumns().add(TableCols.<InventoryItem>muted("Unit", InventoryItem::getUnit));
-        table.getColumns().add(TableCols.<InventoryItem>number("Quantity", InventoryItem::getQuantity, Format::qty));
-        table.getColumns().add(TableCols.<InventoryItem>number("Reorder Level", InventoryItem::getReorderLevel, Format::qty));
-        table.getColumns().add(TableCols.<InventoryItem>status("Stock Status", InventoryItem::getStockStatus,
+        table.getColumns().add(TableCols.<StockRow>primary("Product", StockRow::name));
+        table.getColumns().add(TableCols.<StockRow>text("Category", StockRow::category));
+        table.getColumns().add(TableCols.<StockRow>muted("Barcode", StockRow::code));
+        table.getColumns().add(TableCols.<StockRow>muted("Unit", StockRow::unit));
+        table.getColumns().add(TableCols.<StockRow>number("Quantity", StockRow::quantity, Format::qty));
+        table.getColumns().add(TableCols.<StockRow>number("Reorder Level", StockRow::reorderLevel, Format::qty));
+        table.getColumns().add(TableCols.<StockRow>status("Stock Status", StockRow::stockStatus,
                 s -> switch (s) {
                     case "Out of Stock" -> "status-out";
                     case "Low Stock" -> "status-low";
@@ -94,99 +98,41 @@ public class InventoryScreen extends VBox {
                 }));
 
         getChildren().addAll(heading, controls, table);
-
         refresh();
+    }
+
+    private Integer currentLocationId() {
+        if (fixedLocationId != null) return fixedLocationId;
+        Location l = locationBox.getValue();
+        return l == null ? null : l.getId();
     }
 
     private void applyFilter() {
         String q = searchField.getText() == null ? "" : searchField.getText().trim().toLowerCase();
         boolean low = lowOnly.isSelected();
-
         filtered.setPredicate(item -> {
-            if (low && item.getStockStatus().equals("In Stock")) return false;
+            if (low && item.stockStatus().equals("In Stock")) return false;
             if (q.isEmpty()) return true;
-            return item.getCode().toLowerCase().contains(q)
-                    || item.getName().toLowerCase().contains(q)
-                    || item.getCategory().toLowerCase().contains(q);
+            return item.code().toLowerCase().contains(q)
+                    || item.name().toLowerCase().contains(q)
+                    || item.category().toLowerCase().contains(q);
         });
-
         countLabel.setText(filtered.size() + " of " + data.size() + " items");
     }
 
     private void refresh() {
-        Location location = locationBox.getValue();
-        if (location == null) {
+        Integer locId = currentLocationId();
+        if (locId == null) {
             data.clear();
             applyFilter();
             return;
         }
-
-        String sql = """
-            SELECT p.code, p.name, p.category, p.unit,
-                   COALESCE(i.quantity, 0) AS quantity,
-                   p.reorder_level
-            FROM products p
-            CROSS JOIN locations l
-            LEFT JOIN inventory i ON i.product_id = p.id AND i.location_id = l.id
-            WHERE l.id = ?
-            ORDER BY p.category, p.name
-            """;
-
-        List<InventoryItem> rows = new ArrayList<>();
-        try (Connection c = Database.connect();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-
-            ps.setInt(1, location.getId());
-
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    rows.add(new InventoryItem(
-                            rs.getString("code"),
-                            rs.getString("name"),
-                            rs.getString("category"),
-                            rs.getString("unit"),
-                            rs.getDouble("quantity"),
-                            rs.getDouble("reorder_level")));
-                }
-            }
+        try {
+            List<StockRow> rows = inventoryDao.findStock(locId);
+            data.setAll(rows);
         } catch (SQLException e) {
             new Alert(Alert.AlertType.ERROR, "Failed to load inventory: " + e.getMessage()).show();
         }
-
-        data.setAll(rows);
         applyFilter();
-    }
-
-    public static class InventoryItem {
-
-        private final String code;
-        private final String name;
-        private final String category;
-        private final String unit;
-        private final double quantity;
-        private final double reorderLevel;
-
-        public InventoryItem(String code, String name, String category,
-                             String unit, double quantity, double reorderLevel) {
-            this.code = code;
-            this.name = name;
-            this.category = category;
-            this.unit = unit;
-            this.quantity = quantity;
-            this.reorderLevel = reorderLevel;
-        }
-
-        public String getCode() { return code; }
-        public String getName() { return name; }
-        public String getCategory() { return category; }
-        public String getUnit() { return unit; }
-        public double getQuantity() { return quantity; }
-        public double getReorderLevel() { return reorderLevel; }
-
-        public String getStockStatus() {
-            if (quantity <= 0) return "Out of Stock";
-            if (quantity <= reorderLevel) return "Low Stock";
-            return "In Stock";
-        }
     }
 }

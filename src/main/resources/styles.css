@@ -657,3 +657,7 @@
 .combo-box.form-field {
     -fx-padding: 3 0 3 4;
 }
+
+.view-as-banner { -fx-background-color: #fff3cd; -fx-padding: 8 24; }
+.view-as-banner-text { -fx-text-fill: #664d03; -fx-font-weight: bold; }
+.page-title { -fx-font-size: 22px; -fx-font-weight: bold; }

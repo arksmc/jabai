@@ -3,6 +3,7 @@ package com.jabai.db;
 import com.jabai.model.Product;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.List;
 
 public class ProductDao {
@@ -138,6 +139,22 @@ public class ProductDao {
             ps.setInt(2, id);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
+            }
+        }
+    }
+    
+    public Optional<Product> findById(Connection c, int id) throws SQLException {
+        String sql = "SELECT id, code, name, category, unit, status, "
+                   + "price_centavos, cost_price_centavos, reorder_level FROM products WHERE id = ?";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return Optional.empty();
+                return Optional.of(new Product(
+                        rs.getInt("id"), rs.getString("code"), rs.getString("name"),
+                        rs.getString("category"), rs.getString("unit"), rs.getString("status"),
+                        rs.getLong("price_centavos"), rs.getLong("cost_price_centavos"),
+                        rs.getDouble("reorder_level")));
             }
         }
     }
