@@ -45,7 +45,7 @@ public class ClerkDashboard extends Dashboard {
 
         addSection("SELL");
         addPage("Sales", () -> new SalesScreen(actor, locationId));
-        addPage("Transactions", () -> placeholder("Transaction History (with Void)"));
+        addPage("Transactions", () -> new TransactionsScreen(actor, locationId));
         addSection("OUTLET");
         addPage("Inventory", () -> new InventoryScreen(locationId));
         addPage("Wallet", () -> new WalletScreen(actor, locationId));
