@@ -15,7 +15,7 @@ import com.jabai.model.SendLine;
 import com.jabai.model.StockRequestSummary;
 import com.jabai.model.User;
 import com.jabai.util.Format;
-
+import com.jabai.model.StockRow;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -247,6 +247,24 @@ public class StockService {
             throw new SecurityException("You cannot view this request.");
         }
         return StockRequestDao.findItems(requestId);
+    }
+    
+    public List<StockRequestSummary> allRequests(User actor) throws SQLException {
+        requireManager(actor);
+        return StockRequestDao.findAll();
+    }
+
+    public Map<Integer, Double> warehouseStock(User actor) throws SQLException {
+        requireManager(actor);
+        int warehouseId;
+        try (Connection c = Database.connect()) {
+            warehouseId = locationDao.findWarehouseId(c);
+        }
+        Map<Integer, Double> stock = new java.util.HashMap<>();
+        for (StockRow row : inventoryDao.findStock(warehouseId)) {
+            stock.put(row.productId(), row.quantity());
+        }
+        return stock;
     }
 
     public void fulfillRequest(User actor, long requestId, List<SendLine> lines,

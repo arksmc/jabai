@@ -12,7 +12,7 @@ public class ManagerDashboard extends Dashboard {
         addPage("Inventory", InventoryScreen::new);
         addSection("WAREHOUSE");
         addPage("Stock Orders", () -> new StockOrdersScreen(manager));
-        // later: Overview, Clerk Sales, Transactions, Stock Requests, View as Clerk
+        addPage("Stock Requests", () -> new StockRequestsScreen(manager));
 
         start();
     }
