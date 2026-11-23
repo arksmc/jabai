@@ -1,10 +1,15 @@
 package com.jabai.db;
 
+import com.jabai.model.FilterOption;
+import com.jabai.model.SaleItemView;
 import com.jabai.model.SaleLine;
 import com.jabai.model.SaleSummary;
-import com.jabai.model.SaleItemView;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -58,13 +63,14 @@ public class SaleDao {
                 "SELECT product_id, quantity FROM sale_items WHERE sale_id = ?")) {
             ps.setLong(1, saleId);
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) out.add(new Item(rs.getInt(1), rs.getDouble(2)));
+                while (rs.next()) {
+                    out.add(new Item(rs.getInt(1), rs.getDouble(2)));
+                }
             }
         }
         return out;
     }
 
-    /** Returns false if the sale was already voided (or doesn't exist). */
     public boolean markVoided(Connection c, long saleId, int userId, String reason) throws SQLException {
         String sql = "UPDATE sales SET status = 'Voided', voided_at = datetime('now','localtime'), "
                    + "voided_by = ?, void_reason = ? WHERE id = ? AND status = 'Completed'";
@@ -74,10 +80,8 @@ public class SaleDao {
             ps.setLong(3, saleId);
             return ps.executeUpdate() == 1;
         }
-        
-        
     }
-    
+
     public long completedTotal(int locationId) throws SQLException {
         String sql = "SELECT COALESCE(SUM(total_centavos), 0) FROM sales "
                    + "WHERE location_id = ? AND status = 'Completed'";
@@ -88,99 +92,165 @@ public class SaleDao {
             }
         }
     }
-    
 
     public List<SaleSummary> findByLocation(int locationId) throws SQLException {
+        List<SaleSummary> sales = new ArrayList<>();
 
-    	List<SaleSummary> sales = new ArrayList<>();
+        String sql = """
+            SELECT s.id, l.name AS location_name, u.full_name AS cashier_name,
+                   s.total_centavos, s.cash_tendered_centavos, s.change_given_centavos,
+                   s.created_at
+            FROM sales s
+            JOIN locations l ON s.location_id = l.id
+            JOIN users u ON s.user_id = u.id
+            WHERE s.location_id = ?
+            ORDER BY s.created_at DESC
+            """;
 
-    	String sql = """
-    			SELECT
-    			     s.id,
-    			     l.name AS location_name,
-    			     u.full_name AS cashier_name,
-    			     s.total_centavos,
-    			     s.cash_tendered_centavos,
-    			     s.change_given_centavos,
-    			     s.created_at
-    			 FROM sales s
-    			 JOIN locations l
-    			     ON s.location_id = l.id
-    			 JOIN users u
-    			     ON s.user_id = u.id
-    			 WHERE s.location_id = ?
-    			 ORDER BY s.created_at DESC
-    			 """;
+        try (Connection c = Database.connect();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, locationId);
 
-    	try (Connection c = Database.connect();
-         PreparedStatement ps = c.prepareStatement(sql)) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    sales.add(new SaleSummary(
+                        rs.getLong("id"),
+                        rs.getString("location_name"),
+                        rs.getString("cashier_name"),
+                        rs.getLong("total_centavos"),
+                        rs.getLong("cash_tendered_centavos"),
+                        rs.getLong("change_given_centavos"),
+                        rs.getString("created_at")
+                    ));
+                }
+            }
+        }
 
-    		ps.setInt(1, locationId);
+        return sales;
+    }
 
-    		try (ResultSet rs = ps.executeQuery()) {
+    public List<SaleSummary> findFiltered(Integer locationId, Integer clerkId,
+                                          String fromDate, String toDate) throws SQLException {
+        StringBuilder sql = new StringBuilder("""
+            SELECT s.id, l.name AS location_name, u.full_name AS cashier_name,
+                   s.total_centavos, s.cash_tendered_centavos, s.change_given_centavos,
+                   s.created_at, s.status, s.void_reason
+            FROM sales s
+            JOIN locations l ON s.location_id = l.id
+            JOIN users u ON s.user_id = u.id
+            WHERE 1 = 1
+            """);
+        List<Object> params = new ArrayList<>();
 
-    			while (rs.next()) {
+        if (locationId != null) {
+            sql.append(" AND s.location_id = ?");
+            params.add(locationId);
+        }
+        if (clerkId != null) {
+            sql.append(" AND s.user_id = ?");
+            params.add(clerkId);
+        }
+        if (fromDate != null) {
+            sql.append(" AND date(s.created_at) >= ?");
+            params.add(fromDate);
+        }
+        if (toDate != null) {
+            sql.append(" AND date(s.created_at) <= ?");
+            params.add(toDate);
+        }
+        sql.append(" ORDER BY s.created_at DESC, s.id DESC");
 
-    				SaleSummary sale = new SaleSummary(
-    					rs.getLong("id"),
-    					rs.getString("location_name"),
-    					rs.getString("cashier_name"),
-    					rs.getLong("total_centavos"),
-    					rs.getLong("cash_tendered_centavos"),
-    					rs.getLong("change_given_centavos"),
-    					rs.getString("created_at")
-    				);
+        List<SaleSummary> sales = new ArrayList<>();
 
-    				sales.add(sale);
-    			}
-    		}
-    	}
+        try (Connection c = Database.connect();
+             PreparedStatement ps = c.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    sales.add(new SaleSummary(
+                        rs.getLong("id"),
+                        rs.getString("location_name"),
+                        rs.getString("cashier_name"),
+                        rs.getLong("total_centavos"),
+                        rs.getLong("cash_tendered_centavos"),
+                        rs.getLong("change_given_centavos"),
+                        rs.getString("created_at"),
+                        rs.getString("status"),
+                        rs.getString("void_reason")
+                    ));
+                }
+            }
+        }
 
-    	return sales;
+        return sales;
+    }
+
+    public List<FilterOption> findOutletOptions() throws SQLException {
+        String sql = """
+            SELECT id, name FROM locations
+            WHERE id IN (SELECT DISTINCT location_id FROM users
+                         WHERE role = 'CLERK' AND location_id IS NOT NULL)
+            ORDER BY name
+            """;
+        List<FilterOption> out = new ArrayList<>();
+
+        try (Connection c = Database.connect();
+             PreparedStatement ps = c.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                out.add(new FilterOption(rs.getInt("id"), rs.getString("name"), null));
+            }
+        }
+
+        return out;
+    }
+
+    public List<FilterOption> findCashierOptions() throws SQLException {
+        String sql = "SELECT id, full_name, location_id FROM users WHERE role = 'CLERK' ORDER BY full_name";
+        List<FilterOption> out = new ArrayList<>();
+
+        try (Connection c = Database.connect();
+             PreparedStatement ps = c.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                out.add(new FilterOption(rs.getInt("id"), rs.getString("full_name"), rs.getInt("location_id")));
+            }
+        }
+
+        return out;
     }
 
     public List<SaleItemView> findItems(long saleId) throws SQLException {
+        List<SaleItemView> items = new ArrayList<>();
 
-    	List<SaleItemView> items = new ArrayList<>();
+        String sql = """
+            SELECT p.code AS product_code, p.name AS product_name, p.unit,
+                   si.quantity, si.unit_price_centavos
+            FROM sale_items si
+            JOIN products p ON si.product_id = p.id
+            WHERE si.sale_id = ?
+            ORDER BY p.name
+            """;
 
-    	String sql = """
-    			SELECT
-    			     p.code AS product_code,
-    			     p.name AS product_name,
-    			     p.unit,
-    			     si.quantity,
-    			     si.unit_price_centavos
-    			 FROM sale_items si
-    			 JOIN products p
-    			     ON si.product_id = p.id
-    			 WHERE si.sale_id = ?
-    			 ORDER BY p.name
-    			 """;
+        try (Connection c = Database.connect();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setLong(1, saleId);
 
-    	try (Connection c = Database.connect();
-    		PreparedStatement ps = c.prepareStatement(sql)) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    items.add(new SaleItemView(
+                        rs.getString("product_code"),
+                        rs.getString("product_name"),
+                        rs.getString("unit"),
+                        rs.getDouble("quantity"),
+                        rs.getLong("unit_price_centavos")
+                    ));
+                }
+            }
+        }
 
-    		ps.setLong(1, saleId);
-
-    		try (ResultSet rs = ps.executeQuery()) {
-
-    			while (rs.next()) {
-
-    				SaleItemView item = new SaleItemView(
-    					rs.getString("product_code"),
-    					rs.getString("product_name"),
-    					rs.getString("unit"),
-    					rs.getDouble("quantity"),
-    					rs.getLong("unit_price_centavos")
-    				);
-
-    				items.add(item);
-    			}
-    		}
-    	}
-
-    	return items;
+        return items;
     }
-
-    
 }

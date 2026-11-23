@@ -13,6 +13,8 @@ public class ManagerDashboard extends Dashboard {
         addSection("WAREHOUSE");
         addPage("Stock Orders", () -> new StockOrdersScreen(manager));
         addPage("Stock Requests", () -> new StockRequestsScreen(manager));
+        addSection("MONITOR");
+        addPage("Sale History", () -> new SaleHistoryScreen(manager));
 
         start();
     }
