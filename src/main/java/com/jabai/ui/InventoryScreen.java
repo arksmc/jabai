@@ -80,17 +80,17 @@ public class InventoryScreen extends VBox {
         table.setPlaceholder(new Label("No items match your filters."));
         VBox.setVgrow(table, Priority.ALWAYS);
 
-        table.getColumns().add(TableCols.<InventoryItem>text("Barcode", InventoryItem::getCode));
-        table.getColumns().add(TableCols.<InventoryItem>text("Product", InventoryItem::getName));
+        table.getColumns().add(TableCols.<InventoryItem>primary("Product", InventoryItem::getName));
         table.getColumns().add(TableCols.<InventoryItem>text("Category", InventoryItem::getCategory));
-        table.getColumns().add(TableCols.<InventoryItem>text("Unit", InventoryItem::getUnit));
+        table.getColumns().add(TableCols.<InventoryItem>muted("Barcode", InventoryItem::getCode));
+        table.getColumns().add(TableCols.<InventoryItem>muted("Unit", InventoryItem::getUnit));
         table.getColumns().add(TableCols.<InventoryItem>number("Quantity", InventoryItem::getQuantity, Format::qty));
         table.getColumns().add(TableCols.<InventoryItem>number("Reorder Level", InventoryItem::getReorderLevel, Format::qty));
         table.getColumns().add(TableCols.<InventoryItem>status("Stock Status", InventoryItem::getStockStatus,
                 s -> switch (s) {
                     case "Out of Stock" -> "status-out";
                     case "Low Stock" -> "status-low";
-                    default -> "status-ok";
+                    default -> "status-quiet";
                 }));
 
         getChildren().addAll(heading, controls, table);

@@ -10,6 +10,10 @@ import java.util.function.Function;
 import java.util.function.ToDoubleFunction;
 
 final class TableCols {
+    private static final String[] STATUS_CLASSES = {
+            "status-ok", "status-low", "status-out", "status-info", "status-muted", "status-quiet"
+    };
+
     private TableCols() {
     }
 
@@ -19,12 +23,41 @@ final class TableCols {
         return col;
     }
 
-    /** Sorts by the real number, displays through the given formatter. */
+    static <S> TableColumn<S, String> primary(String title, Function<S, String> getter) {
+        return styled(title, getter, "cell-primary");
+    }
+
+    static <S> TableColumn<S, String> muted(String title, Function<S, String> getter) {
+        return styled(title, getter, "cell-muted");
+    }
+
+    private static <S> TableColumn<S, String> styled(String title, Function<S, String> getter,
+                                                     String cssClass) {
+        TableColumn<S, String> col = text(title, getter);
+        col.setCellFactory(c -> new TableCell<>() {
+            {
+                getStyleClass().add(cssClass);
+            }
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty ? null : item);
+            }
+        });
+        return col;
+    }
+
     static <S> TableColumn<S, Number> number(String title, ToDoubleFunction<S> getter,
                                              DoubleFunction<String> format) {
         TableColumn<S, Number> col = new TableColumn<>(title);
+        col.getStyleClass().add("col-right");
         col.setCellValueFactory(cd -> new SimpleDoubleProperty(getter.applyAsDouble(cd.getValue())));
         col.setCellFactory(c -> new TableCell<>() {
+            {
+                getStyleClass().add("cell-right");
+            }
+
             @Override
             protected void updateItem(Number value, boolean empty) {
                 super.updateItem(value, empty);
@@ -33,8 +66,7 @@ final class TableCols {
         });
         return col;
     }
-    
-    /** Plain colored status text. styleFor maps a status to a CSS class like "status-low". */
+
     static <S> TableColumn<S, String> status(String title, Function<S, String> getter,
                                              Function<String, String> styleFor) {
         TableColumn<S, String> col = text(title, getter);
@@ -42,8 +74,7 @@ final class TableCols {
             @Override
             protected void updateItem(String status, boolean empty) {
                 super.updateItem(status, empty);
-                getStyleClass().removeAll("status-ok", "status-low", "status-out",
-                        "status-info", "status-muted");
+                getStyleClass().removeAll(STATUS_CLASSES);
                 if (empty || status == null) {
                     setText(null);
                     return;

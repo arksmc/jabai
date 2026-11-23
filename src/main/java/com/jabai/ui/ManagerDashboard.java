@@ -9,7 +9,10 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-
+import javafx.geometry.Pos;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
 import java.util.List;
 
 public class ManagerDashboard extends BorderPane {
@@ -22,11 +25,6 @@ public class ManagerDashboard extends BorderPane {
     public ManagerDashboard(Manager manager, Runnable onLogout) {
         this.manager = manager;
         getStyleClass().add("app-root");
-
-        Label brand = new Label("BAGSAKAN");
-        brand.getStyleClass().add("sidebar-brand");
-        Label subtitle = new Label("Agriculture Data Management");
-        subtitle.getStyleClass().add("sidebar-subtitle");
 
         Label manageSection = new Label("MANAGE");
         manageSection.getStyleClass().add("sidebar-section");
@@ -45,12 +43,12 @@ public class ManagerDashboard extends BorderPane {
         Label role = new Label("Manager");
         role.getStyleClass().add("sidebar-role");
 
-        Button logoutBtn = new Button("Logout");
+        Button logoutBtn = new Button("Log out");
         logoutBtn.getStyleClass().add("sidebar-logout");
         logoutBtn.setMaxWidth(Double.MAX_VALUE);
         logoutBtn.setOnAction(e -> onLogout.run());
 
-        VBox sidebar = new VBox(4, brand, subtitle,
+        VBox sidebar = new VBox(4, brandRow(),
                 manageSection, productsBtn, inventoryBtn,
                 warehouseSection, ordersBtn,
                 spacer, who, role, logoutBtn);
@@ -60,6 +58,18 @@ public class ManagerDashboard extends BorderPane {
 
         setLeft(sidebar);
         showProducts();
+    }
+    
+    private static Node brandRow() {
+        Label brand = new Label("BAGSAKAN");
+        brand.getStyleClass().add("sidebar-brand");
+        var url = ManagerDashboard.class.getResource("/images/logo.png");
+        if (url == null) return brand;
+        ImageView logo = new ImageView(new Image(url.toExternalForm(), 0, 34, true, true));
+        HBox row = new HBox(8, logo, brand);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setPadding(new Insets(0, 0, 12, 8));
+        return row;
     }
 
     private static Button navButton(String text) {
