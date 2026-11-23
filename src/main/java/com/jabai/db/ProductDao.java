@@ -111,4 +111,34 @@ public class ProductDao {
             }
         }
     }
+    
+    public void update(Product p) throws SQLException {
+        String sql = "UPDATE products SET code=?, name=?, category=?, unit=?, status=?, "
+                   + "price_centavos=?, cost_price_centavos=?, reorder_level=? WHERE id=?";
+        try (Connection c = Database.connect(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, p.getCode());
+            ps.setString(2, p.getName());
+            ps.setString(3, p.getCategory());
+            ps.setString(4, p.getUnit());
+            ps.setString(5, p.getStatus());
+            ps.setLong(6, p.getPriceCentavos());
+            ps.setLong(7, p.getCostPriceCentavos());
+            ps.setDouble(8, p.getReorderLevel());
+            ps.setInt(9, p.getId());
+            ps.executeUpdate();
+        }
+    }
+
+    /** True if a different product already uses this barcode. */
+    public boolean codeExistsForOther(String code, int id) throws SQLException {
+        try (Connection c = Database.connect();
+             PreparedStatement ps = c.prepareStatement(
+                     "SELECT 1 FROM products WHERE code = ? AND id <> ?")) {
+            ps.setString(1, code);
+            ps.setInt(2, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
 }

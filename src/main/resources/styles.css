@@ -19,6 +19,7 @@
     -info-bg: #e3f2fd;
     -neutral: #546e7a;
     -neutral-bg: #eceff1;
+	-line-strong: #cfd8cf;
 }
 
 .app-root {
@@ -606,4 +607,53 @@
 }
 .grouped-table .swatch.tone-3 {
     -fx-background-color: #2E7D32;
+}
+/* ---------- Products (flat table) ---------- */
+.table-row-cell:filled {
+    -fx-cursor: hand;
+}
+.table-row-cell.row-inactive .table-cell {
+    -fx-opacity: 0.6;
+}
+.inactive-tag {
+    -fx-text-fill: -warn;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+.chip {
+    -fx-background-color: -neutral-bg;
+    -fx-text-fill: -neutral;
+    -fx-background-radius: 20;
+    -fx-padding: 2 10 2 10;
+    -fx-font-size: 12px;
+}
+
+/* ---------- Forms and dialogs ---------- */
+.form-root {
+    -fx-background-color: -surface;
+}
+.form-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -ink-muted;
+}
+.form-hint {
+    -fx-font-size: 12px;
+    -fx-text-fill: -ink-muted;
+}
+.form-field {
+    -fx-background-color: -surface;
+    -fx-background-insets: 0;
+    -fx-background-radius: 8;
+    -fx-border-color: -line-strong;
+    -fx-border-radius: 8;
+    -fx-padding: 9 12 9 12;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+.form-field:focused {
+    -fx-border-color: -brand;
+}
+.combo-box.form-field {
+    -fx-padding: 3 0 3 4;
 }

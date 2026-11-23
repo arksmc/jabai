@@ -4,12 +4,35 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
-
+import javafx.scene.control.Label;
 import java.util.function.DoubleFunction;
 import java.util.function.Function;
 import java.util.function.ToDoubleFunction;
 
 final class TableCols {
+    static <S> TableColumn<S, String> chip(String title, Function<S, String> getter) {
+        TableColumn<S, String> col = text(title, getter);
+        col.setCellFactory(c -> new TableCell<>() {
+            private final Label chip = new Label();
+
+            {
+                chip.getStyleClass().add("chip");
+            }
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                    return;
+                }
+                chip.setText(item);
+                setGraphic(chip);
+            }
+        });
+        return col;
+    }
+    
     private static final String[] STATUS_CLASSES = {
             "status-ok", "status-low", "status-out", "status-info", "status-muted", "status-quiet"
     };
