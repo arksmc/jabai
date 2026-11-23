@@ -72,5 +72,18 @@ public class SaleDao {
             ps.setLong(3, saleId);
             return ps.executeUpdate() == 1;
         }
+        
+        
+    }
+    
+    public long completedTotal(int locationId) throws SQLException {
+        String sql = "SELECT COALESCE(SUM(total_centavos), 0) FROM sales "
+                   + "WHERE location_id = ? AND status = 'Completed'";
+        try (Connection c = Database.connect(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, locationId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : 0;
+            }
+        }
     }
 }
