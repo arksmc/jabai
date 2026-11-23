@@ -22,6 +22,22 @@ public class LocationDao {
             }
         }
         return list;
+        
+    }
+    
+    /** Warehouse first, then outlets in id order. */
+    public List<Location> findAll() throws SQLException {
+        List<Location> list = new ArrayList<>();
+        String sql = "SELECT id, name, type FROM locations "
+                   + "ORDER BY CASE type WHEN 'WAREHOUSE' THEN 0 ELSE 1 END, id";
+        try (Connection c = Database.connect();
+             Statement s = c.createStatement();
+             ResultSet rs = s.executeQuery(sql)) {
+            while (rs.next()) {
+                list.add(new Location(rs.getInt("id"), rs.getString("name"), rs.getString("type")));
+            }
+        }
+        return list;
     }
     
     public int findWarehouseId(Connection c) throws SQLException {

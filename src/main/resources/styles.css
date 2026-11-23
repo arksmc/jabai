@@ -207,3 +207,172 @@
     -fx-background-color: transparent;
 }
 
+/* ---------- Auth screens (welcome, outlet selection, login) ---------- */
+.auth-root {
+    -fx-background-color: white;
+}
+
+/* left side */
+.auth-hero {
+    -fx-background-color: #f1f8f2;
+    -fx-padding: 36 48 44 48;
+}
+.auth-logo {
+    -fx-background-color: #2e7d32;
+    -fx-background-radius: 24;
+    -fx-text-fill: white;
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+    -fx-min-width: 48;
+    -fx-min-height: 48;
+    -fx-pref-width: 48;
+    -fx-pref-height: 48;
+    -fx-max-width: 48;
+    -fx-max-height: 48;
+}
+.auth-headline {
+    -fx-font-size: 46px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #14231a;
+}
+.auth-headline-accent {
+    -fx-text-fill: #2e7d32;
+}
+.auth-card {
+    -fx-background-color: white;
+    -fx-background-radius: 14;
+    -fx-padding: 14 16 14 16;
+    -fx-effect: dropshadow(gaussian, rgba(27, 94, 32, 0.18), 18, 0.1, 0, 4);
+}
+.auth-card-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #14231a;
+}
+.auth-card-meta {
+    -fx-font-size: 12px;
+    -fx-text-fill: #6b7a6b;
+}
+
+/* right side */
+.auth-form-panel {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent transparent #dfe6df;
+    -fx-border-width: 0 0 0 1;
+    -fx-padding: 0 40 0 40;
+}
+.auth-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #14231a;
+}
+.auth-subtitle {
+    -fx-text-fill: #6b7a6b;
+    -fx-padding: 0 0 8 0;
+}
+.auth-footnote {
+    -fx-text-fill: #8a978a;
+    -fx-font-size: 12px;
+}
+.auth-back {
+    -fx-background-color: transparent;
+    -fx-text-fill: #14231a;
+    -fx-font-size: 20px;
+    -fx-padding: 0 6 2 0;
+    -fx-cursor: hand;
+}
+.auth-back:hover {
+    -fx-text-fill: #2e7d32;
+}
+.auth-field-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #6b7a6b;
+}
+.auth-field {
+    -fx-background-color: white;
+    -fx-background-insets: 0;
+    -fx-background-radius: 10;
+    -fx-border-color: #c9d1c9;
+    -fx-border-radius: 10;
+    -fx-padding: 12 14 12 14;
+    -fx-font-size: 15px;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+.auth-field:focused {
+    -fx-border-color: #2e7d32;
+}
+.auth-field-password {
+    -fx-padding: 12 64 12 14; /* room for the Show/Hide button */
+}
+.auth-toggle {
+    -fx-background-color: transparent;
+    -fx-text-fill: #2e7d32;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+.auth-error {
+    -fx-text-fill: #c62828;
+}
+.auth-chip {
+    -fx-background-color: #e3f2fd;
+    -fx-text-fill: #1565c0;
+    -fx-background-radius: 20;
+    -fx-padding: 4 12 4 12;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+/* pill buttons */
+.auth-primary-btn {
+    -fx-background-color: #2e7d32;
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 30;
+    -fx-padding: 12 20 12 20;
+    -fx-cursor: hand;
+}
+.auth-primary-btn:hover {
+    -fx-background-color: #1b5e20;
+}
+.auth-outline-btn {
+    -fx-background-color: white;
+    -fx-border-color: #1565c0;
+    -fx-border-radius: 30;
+    -fx-background-radius: 30;
+    -fx-text-fill: #1565c0;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-padding: 11 20 11 20;
+    -fx-cursor: hand;
+}
+.auth-outline-btn:hover {
+    -fx-background-color: #e3f2fd;
+}
+
+/* clerk login switches the accent to blue */
+.role-clerk .auth-primary-btn {
+    -fx-background-color: #1565c0;
+}
+.role-clerk .auth-primary-btn:hover {
+    -fx-background-color: #0d47a1;
+}
+.role-clerk .auth-field:focused {
+    -fx-border-color: #1565c0;
+}
+.role-clerk .auth-toggle {
+    -fx-text-fill: #1565c0;
+}
+
+/* outlet list scroll area */
+.auth-scroll,
+.auth-scroll > .viewport {
+    -fx-background: transparent;
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+

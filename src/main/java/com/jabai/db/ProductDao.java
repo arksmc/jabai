@@ -66,16 +66,8 @@ public class ProductDao {
                     }
                 }
 
-                boolean hasSales;
-                try (PreparedStatement ps = c.prepareStatement(
-                        "SELECT 1 FROM sale_items WHERE product_id = ? LIMIT 1")) {
-                    ps.setInt(1, id);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        hasSales = rs.next();
-                    }
-                }
-
-                if (hasSales) {
+                // Anything that references this product means we must keep the row.
+                if (hasHistory(c, id)) {
                     try (PreparedStatement ps = c.prepareStatement(
                             "UPDATE products SET status = 'Inactive' WHERE id = ?")) {
                         ps.setInt(1, id);
@@ -95,9 +87,27 @@ public class ProductDao {
                 }
                 c.commit();
                 return true;
-            } catch (SQLException e) {
+            } catch (SQLException | RuntimeException e) {
                 c.rollback();
                 throw e;
+            }
+        }
+    }
+
+    /** True if the product appears in any sale, stock order, stock request or stock movement. */
+    private boolean hasHistory(Connection c, int productId) throws SQLException {
+        String sql = """
+            SELECT EXISTS (SELECT 1 FROM sale_items WHERE product_id = ?)
+                OR EXISTS (SELECT 1 FROM stock_order_items WHERE product_id = ?)
+                OR EXISTS (SELECT 1 FROM stock_request_items WHERE product_id = ?)
+                OR EXISTS (SELECT 1 FROM stock_movements WHERE product_id = ?)
+            """;
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            for (int i = 1; i <= 4; i++) {
+                ps.setInt(i, productId);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getInt(1) == 1;
             }
         }
     }

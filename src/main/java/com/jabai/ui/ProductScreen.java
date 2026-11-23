@@ -1,6 +1,7 @@
 package com.jabai.ui;
 
 import com.jabai.db.ProductDao;
+import com.jabai.util.Format;
 import com.jabai.model.Product;
 import com.jabai.util.Money;
 import javafx.collections.FXCollections;
@@ -80,62 +81,24 @@ public class ProductScreen extends VBox {
         table.setTableMenuButtonVisible(true); // "+" at the right of the header: show/hide columns
         VBox.setVgrow(table, Priority.ALWAYS);
 
-        TableColumn<Product, Number> costCol = moneyColumn("Cost", "costPriceCentavos");
+        TableColumn<Product, Number> costCol = TableCols.<Product>number("Cost",
+                Product::getCostPriceCentavos, v -> Money.format((long) v));
         costCol.setVisible(false); // hidden by default; toggle from the header menu
 
-        table.getColumns().add(textColumn("Code", "code"));
-        table.getColumns().add(textColumn("Name", "name"));
-        table.getColumns().add(textColumn("Category", "category"));
-        table.getColumns().add(textColumn("Unit", "unit"));
+        table.getColumns().add(TableCols.<Product>text("Code", Product::getCode));
+        table.getColumns().add(TableCols.<Product>text("Name", Product::getName));
+        table.getColumns().add(TableCols.<Product>text("Category", Product::getCategory));
+        table.getColumns().add(TableCols.<Product>text("Unit", Product::getUnit));
         table.getColumns().add(statusColumn());
-        table.getColumns().add(moneyColumn("Price", "priceCentavos"));
+        table.getColumns().add(TableCols.<Product>number("Price",
+                Product::getPriceCentavos, v -> Money.format((long) v)));
         table.getColumns().add(costCol);
-        table.getColumns().add(numberColumn("Reorder", "reorderLevel"));
+        table.getColumns().add(TableCols.<Product>number("Reorder", Product::getReorderLevel, Format::qty));
 
         getChildren().addAll(header, controls, table);
         refresh();
     }
-
-    // ---------- Columns ----------
-
-    private TableColumn<Product, String> textColumn(String title, String property) {
-        TableColumn<Product, String> col = new TableColumn<>(title);
-        col.setCellValueFactory(new PropertyValueFactory<>(property));
-        return col;
-    }
-
-    /** Sorts by the real number (centavos) but displays as pesos. */
-    private TableColumn<Product, Number> moneyColumn(String title, String property) {
-        TableColumn<Product, Number> col = new TableColumn<>(title);
-        col.setCellValueFactory(new PropertyValueFactory<>(property));
-        col.setCellFactory(c -> new TableCell<>() {
-            @Override
-            protected void updateItem(Number value, boolean empty) {
-                super.updateItem(value, empty);
-                setText(empty || value == null ? null : Money.format(value.longValue()));
-            }
-        });
-        return col;
-    }
-
-    private TableColumn<Product, Number> numberColumn(String title, String property) {
-        TableColumn<Product, Number> col = new TableColumn<>(title);
-        col.setCellValueFactory(new PropertyValueFactory<>(property));
-        col.setCellFactory(c -> new TableCell<>() {
-            @Override
-            protected void updateItem(Number value, boolean empty) {
-                super.updateItem(value, empty);
-                if (empty || value == null) {
-                    setText(null);
-                } else {
-                    double v = value.doubleValue();
-                    setText(v == Math.floor(v) ? String.valueOf((long) v) : String.format("%.2f", v));
-                }
-            }
-        });
-        return col;
-    }
-
+    
     private TableColumn<Product, String> statusColumn() {
         TableColumn<Product, String> col = new TableColumn<>("Status");
         col.setCellValueFactory(new PropertyValueFactory<>("status"));
@@ -204,8 +167,8 @@ public class ProductScreen extends VBox {
         try {
             boolean deleted = dao.delete(p.getId());
             if (!deleted) {
-                new Alert(Alert.AlertType.INFORMATION,
-                        p.getName() + " has sales history, so it was marked Inactive instead of deleted.").show();
+            	new Alert(Alert.AlertType.INFORMATION,
+            	        p.getName() + " has sales, order or stock history, so it was marked Inactive instead of deleted.").show();
             }
             refresh();
         } catch (Exception ex) {

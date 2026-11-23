@@ -1,6 +1,9 @@
 package com.jabai.ui;
 
 import com.jabai.db.Database;
+import com.jabai.db.LocationDao;
+import com.jabai.model.Location;
+import com.jabai.util.Format;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -17,13 +20,15 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class InventoryScreen extends VBox {
 
     private final TableView<InventoryItem> table = new TableView<>();
     private final ObservableList<InventoryItem> data = FXCollections.observableArrayList();
     private final FilteredList<InventoryItem> filtered = new FilteredList<>(data, i -> true);
 
-    private final ComboBox<String> locationBox = new ComboBox<>();
+    private final LocationDao locationDao = new LocationDao();
+    private final ComboBox<Location> locationBox = new ComboBox<>();
     private final TextField searchField = new TextField();
     private final CheckBox lowOnly = new CheckBox("Low / out of stock only");
     private final Label countLabel = new Label();
@@ -36,8 +41,14 @@ public class InventoryScreen extends VBox {
         heading.getStyleClass().add("page-title");
 
         // Controls
-        locationBox.getItems().addAll("Main Warehouse", "Outlet 1");
-        locationBox.setValue("Main Warehouse");
+        try {
+            locationBox.getItems().setAll(locationDao.findAll());
+            if (!locationBox.getItems().isEmpty()) {
+                locationBox.setValue(locationBox.getItems().get(0)); // warehouse comes first
+            }
+        } catch (SQLException ex) {
+            new Alert(Alert.AlertType.ERROR, "Failed to load locations: " + ex.getMessage()).show();
+        }
         locationBox.setOnAction(e -> refresh());
 
         searchField.setPromptText("Search code, product or category...");
@@ -70,37 +81,17 @@ public class InventoryScreen extends VBox {
         table.setPlaceholder(new Label("No items match your filters."));
         VBox.setVgrow(table, Priority.ALWAYS);
 
-        table.getColumns().add(textColumn("Code", "code"));
-        table.getColumns().add(textColumn("Product", "name"));
-        table.getColumns().add(textColumn("Category", "category"));
-        table.getColumns().add(textColumn("Unit", "unit"));
-        table.getColumns().add(numberColumn("Quantity", "quantity"));
-        table.getColumns().add(numberColumn("Reorder Level", "reorderLevel"));
+        table.getColumns().add(TableCols.<InventoryItem>text("Code", InventoryItem::getCode));
+        table.getColumns().add(TableCols.<InventoryItem>text("Product", InventoryItem::getName));
+        table.getColumns().add(TableCols.<InventoryItem>text("Category", InventoryItem::getCategory));
+        table.getColumns().add(TableCols.<InventoryItem>text("Unit", InventoryItem::getUnit));
+        table.getColumns().add(TableCols.<InventoryItem>number("Quantity", InventoryItem::getQuantity, Format::qty));
+        table.getColumns().add(TableCols.<InventoryItem>number("Reorder Level", InventoryItem::getReorderLevel, Format::qty));
         table.getColumns().add(statusColumn());
 
         getChildren().addAll(heading, controls, table);
 
         refresh();
-    }
-
-    private TableColumn<InventoryItem, String> textColumn(String title, String property) {
-        TableColumn<InventoryItem, String> col = new TableColumn<>(title);
-        col.setCellValueFactory(new PropertyValueFactory<>(property));
-        return col;
-    }
-
-    /** Numeric column: sorts as numbers, shows "60" instead of "60.0". */
-    private TableColumn<InventoryItem, Number> numberColumn(String title, String property) {
-        TableColumn<InventoryItem, Number> col = new TableColumn<>(title);
-        col.setCellValueFactory(new PropertyValueFactory<>(property));
-        col.setCellFactory(c -> new TableCell<>() {
-            @Override
-            protected void updateItem(Number value, boolean empty) {
-                super.updateItem(value, empty);
-                setText(empty || value == null ? null : formatQty(value.doubleValue()));
-            }
-        });
-        return col;
     }
 
     /** Colored pill: green = In Stock, orange = Low Stock, red = Out of Stock. */
@@ -130,9 +121,6 @@ public class InventoryScreen extends VBox {
         return col;
     }
 
-    private static String formatQty(double v) {
-        return v == Math.floor(v) ? String.valueOf((long) v) : String.format("%.2f", v);
-    }
 
     private void applyFilter() {
         String q = searchField.getText() == null ? "" : searchField.getText().trim().toLowerCase();
@@ -150,6 +138,13 @@ public class InventoryScreen extends VBox {
     }
 
     private void refresh() {
+        Location location = locationBox.getValue();
+        if (location == null) {
+            data.clear();
+            applyFilter();
+            return;
+        }
+
         String sql = """
             SELECT p.code, p.name, p.category, p.unit,
                    COALESCE(i.quantity, 0) AS quantity,
@@ -157,7 +152,7 @@ public class InventoryScreen extends VBox {
             FROM products p
             CROSS JOIN locations l
             LEFT JOIN inventory i ON i.product_id = p.id AND i.location_id = l.id
-            WHERE l.name = ?
+            WHERE l.id = ?
             ORDER BY p.category, p.name
             """;
 
@@ -165,7 +160,7 @@ public class InventoryScreen extends VBox {
         try (Connection c = Database.connect();
              PreparedStatement ps = c.prepareStatement(sql)) {
 
-            ps.setString(1, locationBox.getValue());
+            ps.setInt(1, location.getId());
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
