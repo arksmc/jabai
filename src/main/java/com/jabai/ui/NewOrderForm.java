@@ -221,7 +221,7 @@ public class NewOrderForm extends VBox {
                     .map(l -> new OrderLine(l.product().getId(), l.quantity(), l.unitCostCentavos()))
                     .toList();
             String note = notes.getText().isBlank() ? null : notes.getText().trim();
-            service.createOrder(manager.getId(), supplier.getText(), note, orderLines);
+            service.createOrder(manager, supplier.getText(), note, orderLines);
             onDone.run();
         } catch (Exception ex) {
             showError(ex.getMessage());

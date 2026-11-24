@@ -6,7 +6,6 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -91,8 +90,12 @@ public abstract class Dashboard extends BorderPane {
         exit.getStyleClass().add("sidebar-logout");
         exit.setMaxWidth(Double.MAX_VALUE);
         exit.setOnAction(e -> onExit.run());
+        
+        Button themeBtn = ThemeManager.createToggleButton("sidebar-logout");
+        themeBtn.setMaxWidth(Double.MAX_VALUE);
+        VBox.setMargin(themeBtn, new Insets(0, 0, 12, 0));
 
-        sidebar.getChildren().addAll(spacer, who, role, exit);
+        sidebar.getChildren().addAll(spacer, themeBtn, who, role, exit);
 
         if (!pages.isEmpty()) open(pages.keySet().iterator().next());
     }
@@ -114,9 +117,8 @@ public abstract class Dashboard extends BorderPane {
     private static Node brandRow() {
         Label brand = new Label("BAGSAKAN");
         brand.getStyleClass().add("sidebar-brand");
-        var url = Dashboard.class.getResource("/images/logo.png");
-        if (url == null) return brand;
-        ImageView logo = new ImageView(new Image(url.toExternalForm(), 0, 34, true, true));
+        ImageView logo = ThemeManager.createLogo(34);
+        if (logo == null) return brand;
         HBox row = new HBox(8, logo, brand);
         row.setAlignment(Pos.CENTER_LEFT);
         row.setPadding(new Insets(0, 0, 12, 8));

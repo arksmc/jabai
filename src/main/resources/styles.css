@@ -19,11 +19,27 @@
     -info-bg: #e3f2fd;
     -neutral: #546e7a;
     -neutral-bg: #eceff1;
-	-line-strong: #cfd8cf;
+    -line-strong: #cfd8cf;
+    -line-faint: #eef2ee;
+    -danger-border: #e7b4b4;
+    -app-bg: #f4f7f4;
+    -hero-bg: #f1f8f2;
+    -ink-soft: #3a4a3e;
+    -ink-faint: #8a978a;
+    -brand-hover: #1b5e20;
+    -brand-text: #1b5e20;
+    -low: #e65100;
+    -row-checked: #eef4ee;
+    -banner-bg: #fff3cd;
+    -banner-fg: #664d03;
+    -tone0-bg: #FBE9E8;  -tone0-fg: #8E1B20;
+    -tone1-bg: #FFF3D6;  -tone1-fg: #6B4800;
+    -tone2-bg: #E6EDF9;  -tone2-fg: #24427F;
+    -tone3-bg: #E3F1E4;  -tone3-fg: #1E5C22;
 }
 
 .app-root {
-    -fx-background-color: #f4f7f4;
+    -fx-background-color: -app-bg;
 }
 
 /* ---------- Sidebar ---------- */
@@ -34,7 +50,7 @@
     -fx-padding: 24 14 20 14;
 }
 .sidebar-brand {
-    -fx-text-fill: -brand-dark;
+    -fx-text-fill: -brand-text;
     -fx-font-size: 20px;
     -fx-font-weight: bold;
     -fx-padding: 0 0 0 8;
@@ -52,7 +68,7 @@
 }
 .nav-button {
     -fx-background-color: transparent;
-    -fx-text-fill: #3a4a3e;
+    -fx-text-fill: -ink-soft;
     -fx-alignment: CENTER_LEFT;
     -fx-padding: 10 14 10 14;
     -fx-background-radius: 4;
@@ -64,7 +80,7 @@
 .nav-button-active,
 .nav-button-active:hover {
     -fx-background-color: -ok-bg;
-    -fx-text-fill: -brand-dark;
+    -fx-text-fill: -brand-text;
     -fx-font-weight: bold;
 }
 .sidebar-user {
@@ -111,7 +127,7 @@
     -fx-cursor: hand;
 }
 .btn-primary:hover {
-    -fx-background-color: #1b5e20;
+    -fx-background-color: -brand-hover;
 }
 .btn-danger {
     -fx-background-color: #c62828;
@@ -128,7 +144,7 @@
 .btn-danger-outline {
     -fx-background-color: -surface;
     -fx-text-fill: -danger;
-    -fx-border-color: #e7b4b4;
+    -fx-border-color: -danger-border;
     -fx-border-radius: 4;
     -fx-background-radius: 6;
     -fx-padding: 8 16 8 16;
@@ -138,16 +154,16 @@
     -fx-background-color: -danger-bg;
 }
 .btn-secondary {
-    -fx-background-color: white;
-    -fx-text-fill: #333333;
-    -fx-border-color: #cfd8cf;
+    -fx-background-color: -surface;
+    -fx-text-fill: -ink;
+    -fx-border-color: -line-strong;
     -fx-border-radius: 6;
     -fx-background-radius: 6;
     -fx-padding: 8 16 8 16;
     -fx-cursor: hand;
 }
 .btn-secondary:hover {
-    -fx-background-color: #eef3ee;
+    -fx-background-color: -row-hover;
 }
 
 /* ---------- Tables ---------- */
@@ -184,7 +200,7 @@
 }
 .table-row-cell {
     -fx-background-color: -surface;
-    -fx-border-color: transparent transparent #eef2ee transparent;
+    -fx-border-color: transparent transparent -line-faint transparent;
     -fx-cell-size: 40px;
 }
 .table-row-cell:odd {
@@ -223,27 +239,28 @@
 
 /* ---------- Search / filters ---------- */
 .search-field {
-    -fx-background-color: white;
-    -fx-border-color: #cfd8cf;
+    -fx-background-color: -surface;
+    -fx-text-fill: -ink;
+    -fx-border-color: -line-strong;
     -fx-border-radius: 6;
     -fx-background-radius: 4;
     -fx-padding: 7 10 7 10;
 }
 .search-field:focused {
-    -fx-border-color: #2e7d32;
+    -fx-border-color: -brand;
 }
 .muted-label {
-    -fx-text-fill: #6b7a6b;
+    -fx-text-fill: -ink-muted;
 }
 
 .badge-info {
-    -fx-background-color: #e3f2fd;
-    -fx-text-fill: #1565c0;
+    -fx-background-color: -info-bg;
+    -fx-text-fill: -info;
 }
 .total-label {
     -fx-font-size: 16px;
     -fx-font-weight: bold;
-    -fx-text-fill: #1b5e20;
+    -fx-text-fill: -brand-text;
 }
 .split-pane {
     -fx-background-color: transparent;
@@ -255,12 +272,12 @@
 
 /* ---------- Auth screens (welcome, outlet selection, login) ---------- */
 .auth-root {
-    -fx-background-color: white;
+    -fx-background-color: -surface;
 }
 
 /* left side */
 .auth-hero {
-    -fx-background-color: #f1f8f2;
+    -fx-background-color: -hero-bg;
     -fx-padding: 36 48 44 48;
 }
 .auth-logo {
@@ -280,68 +297,69 @@
 .auth-headline {
     -fx-font-size: 46px;
     -fx-font-weight: bold;
-    -fx-text-fill: #14231a;
+    -fx-text-fill: -ink;
 }
 .auth-headline-accent {
-    -fx-text-fill: #2e7d32;
+    -fx-text-fill: -brand-text;
 }
 .auth-card {
-    -fx-background-color: white;
+    -fx-background-color: -surface;
     -fx-background-radius: 8;
-    -fx-border-color: #dfe6df;
+    -fx-border-color: -line;
     -fx-border-radius: 8;
     -fx-padding: 14 16 14 16;
 }
 .auth-card-title {
     -fx-font-size: 16px;
     -fx-font-weight: bold;
-    -fx-text-fill: #14231a;
+    -fx-text-fill: -ink;
 }
 .auth-card-meta {
     -fx-font-size: 12px;
-    -fx-text-fill: #6b7a6b;
+    -fx-text-fill: -ink-muted;
 }
 
 /* right side */
 .auth-form-panel {
-    -fx-background-color: white;
-    -fx-border-color: transparent transparent transparent #dfe6df;
+    -fx-background-color: -surface;
+    -fx-border-color: transparent transparent transparent -line;
     -fx-border-width: 0 0 0 1;
     -fx-padding: 0 40 0 40;
 }
 .auth-title {
     -fx-font-size: 22px;
     -fx-font-weight: bold;
-    -fx-text-fill: #14231a;
+    -fx-text-fill: -ink;
 }
 .auth-subtitle {
-    -fx-text-fill: #6b7a6b;
+    -fx-text-fill: -ink-muted;
     -fx-padding: 0 0 8 0;
 }
 .auth-footnote {
-    -fx-text-fill: #8a978a;
+    -fx-text-fill: -ink-faint;
     -fx-font-size: 12px;
 }
 .auth-back {
     -fx-background-color: transparent;
-    -fx-text-fill: #14231a;
+    -fx-text-fill: -ink;
     -fx-font-size: 20px;
     -fx-padding: 0 6 2 0;
     -fx-cursor: hand;
 }
 .auth-back:hover {
-    -fx-text-fill: #2e7d32;
+    -fx-text-fill: -brand-text;
 }
 .auth-field-label {
     -fx-font-size: 12px;
     -fx-font-weight: bold;
-    -fx-text-fill: #6b7a6b;
+    -fx-text-fill: -ink-muted;
 }
 .auth-field {
-    -fx-background-color: white;
+    -fx-background-color: -surface;
+    -fx-text-fill: -ink;
     -fx-background-insets: 0;
     -fx-background-radius: 8;
-    -fx-border-color: #c9d1c9;
+    -fx-border-color: -line-strong;
     -fx-border-radius: 8;
     -fx-padding: 12 14 12 14;
     -fx-font-size: 15px;
@@ -349,24 +367,24 @@
     -fx-faint-focus-color: transparent;
 }
 .auth-field:focused {
-    -fx-border-color: #2e7d32;
+    -fx-border-color: -brand;
 }
 .auth-field-password {
     -fx-padding: 12 64 12 14; /* room for the Show/Hide button */
 }
 .auth-toggle {
     -fx-background-color: transparent;
-    -fx-text-fill: #2e7d32;
+    -fx-text-fill: -brand-text;
     -fx-font-size: 12px;
     -fx-font-weight: bold;
     -fx-cursor: hand;
 }
 .auth-error {
-    -fx-text-fill: #c62828;
+    -fx-text-fill: -danger;
 }
 .auth-chip {
-    -fx-background-color: #e3f2fd;
-    -fx-text-fill: #1565c0;
+    -fx-background-color: -info-bg;
+    -fx-text-fill: -info;
     -fx-background-radius: 20;
     -fx-padding: 4 12 4 12;
     -fx-font-size: 12px;
@@ -383,21 +401,21 @@
     -fx-cursor: hand;
 }
 .auth-primary-btn:hover {
-    -fx-background-color: #1b5e20;
+    -fx-background-color: -brand-hover;
 }
 .auth-outline-btn {
-    -fx-background-color: white;
-    -fx-border-color: #1565c0;
+    -fx-background-color: -surface;
+    -fx-border-color: -info;
     -fx-border-radius: 30;
     -fx-background-radius: 30;
-    -fx-text-fill: #1565c0;
+    -fx-text-fill: -info;
     -fx-font-size: 15px;
     -fx-font-weight: bold;
     -fx-padding: 11 20 11 20;
     -fx-cursor: hand;
 }
 .auth-outline-btn:hover {
-    -fx-background-color: #e3f2fd;
+    -fx-background-color: -info-bg;
 }
 
 /* clerk login switches the accent to blue */
@@ -408,10 +426,10 @@
     -fx-background-color: #0d47a1;
 }
 .role-clerk .auth-field:focused {
-    -fx-border-color: #1565c0;
+    -fx-border-color: -info;
 }
 .role-clerk .auth-toggle {
-    -fx-text-fill: #1565c0;
+    -fx-text-fill: -info;
 }
 
 /* outlet list scroll area */
@@ -424,22 +442,22 @@
 /* ---------- Status text (colored, no background) ---------- */
 .status-ok,
 .table-row-cell .table-cell.status-ok {
-    -fx-text-fill: #2e7d32;
+    -fx-text-fill: -ok;
     -fx-font-weight: bold;
 }
 .status-low,
 .table-row-cell .table-cell.status-low {
-    -fx-text-fill: #e65100;
+    -fx-text-fill: -low;
     -fx-font-weight: bold;
 }
 .status-out,
 .table-row-cell .table-cell.status-out {
-    -fx-text-fill: #c62828;
+    -fx-text-fill: -danger;
     -fx-font-weight: bold;
 }
 .status-info,
 .table-row-cell .table-cell.status-info {
-    -fx-text-fill: #1565c0;
+    -fx-text-fill: -info;
     -fx-font-weight: bold;
 }
 .status-muted,
@@ -501,7 +519,7 @@
 
 .grouped-table .tree-table-row-cell {
     -fx-background-color: -surface;
-    -fx-border-color: transparent transparent #eef2ee transparent;
+    -fx-border-color: transparent transparent -line-faint transparent;
     -fx-cell-size: 42px;
     -fx-indentation: 0;
 }
@@ -516,7 +534,7 @@
     -fx-border-color: transparent;
 }
 .grouped-table .tree-table-row-cell.row-checked {
-    -fx-background-color: -brand, #eef4ee;
+    -fx-background-color: -brand, -row-checked;
     -fx-background-insets: 0, 0 0 0 3;
 }
 
@@ -557,28 +575,28 @@
     -fx-cell-size: 38px;
 }
 .grouped-table .tree-table-row-cell.group-row.tone-0 {
-    -fx-background-color: #FBE9E8;
+    -fx-background-color: -tone0-bg;
 }
 .grouped-table .tree-table-row-cell.group-row.tone-1 {
-    -fx-background-color: #FFF3D6;
+    -fx-background-color: -tone1-bg;
 }
 .grouped-table .tree-table-row-cell.group-row.tone-2 {
-    -fx-background-color: #E6EDF9;
+    -fx-background-color: -tone2-bg;
 }
 .grouped-table .tree-table-row-cell.group-row.tone-3 {
-    -fx-background-color: #E3F1E4;
+    -fx-background-color: -tone3-bg;
 }
 .grouped-table .group-row.tone-0 .group-name {
-    -fx-text-fill: #8E1B20;
+    -fx-text-fill: -tone0-fg;
 }
 .grouped-table .group-row.tone-1 .group-name {
-    -fx-text-fill: #6B4800;
+    -fx-text-fill: -tone1-fg;
 }
 .grouped-table .group-row.tone-2 .group-name {
-    -fx-text-fill: #24427F;
+    -fx-text-fill: -tone2-fg;
 }
 .grouped-table .group-row.tone-3 .group-name {
-    -fx-text-fill: #1E5C22;
+    -fx-text-fill: -tone3-fg;
 }
 .grouped-table .group-name {
     -fx-font-size: 14px;
@@ -658,6 +676,22 @@
     -fx-padding: 3 0 3 4;
 }
 
-.view-as-banner { -fx-background-color: #fff3cd; -fx-padding: 8 24; }
-.view-as-banner-text { -fx-text-fill: #664d03; -fx-font-weight: bold; }
+.view-as-banner { -fx-background-color: -banner-bg; -fx-padding: 8 24; }
+.view-as-banner-text { -fx-text-fill: -banner-fg; -fx-font-weight: bold; }
 .page-title { -fx-font-size: 22px; -fx-font-weight: bold; }
+
+/* ---------- Theme toggle ---------- */
+.theme-toggle {
+    -fx-background-color: transparent;
+    -fx-text-fill: -ink-muted;
+    -fx-border-color: -line;
+    -fx-border-radius: 20;
+    -fx-background-radius: 20;
+    -fx-padding: 5 12 5 12;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+}
+.theme-toggle:hover {
+    -fx-background-color: -surface-soft;
+    -fx-text-fill: -ink;
+}

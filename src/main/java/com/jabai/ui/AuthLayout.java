@@ -1,6 +1,7 @@
 package com.jabai.ui;
 
 import javafx.geometry.Pos;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
@@ -9,13 +10,13 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.Node;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 
 /** Split screen used before login: brand/hero on the left, the form on the right. */
 public class AuthLayout extends HBox {
 
-    private final VBox formPanel = new VBox();
+    private final StackPane formPanel = new StackPane();
+    private final Button themeToggle = ThemeManager.createToggleButton("theme-toggle");
 
     protected AuthLayout() {
         getStyleClass().add("auth-root");
@@ -28,6 +29,9 @@ public class AuthLayout extends HBox {
         formPanel.setMinWidth(420);
         formPanel.setPrefWidth(480);
         formPanel.setMaxWidth(480);
+        
+        StackPane.setAlignment(themeToggle, Pos.TOP_RIGHT);
+        StackPane.setMargin(themeToggle, new Insets(16, 0, 0, 0));
 
         getChildren().addAll(hero, formPanel);
     }
@@ -35,7 +39,8 @@ public class AuthLayout extends HBox {
     /** Subclasses call this once with the content for the right-hand side. */
     protected final void setForm(Region content) {
         content.setMaxWidth(360);
-        formPanel.getChildren().setAll(content);
+        content.setMaxHeight(Region.USE_PREF_SIZE); // keep the form vertically centered
+        formPanel.getChildren().setAll(content, themeToggle);
     }
 
     // ---------- Shared pieces for the form side ----------
@@ -132,20 +137,14 @@ public class AuthLayout extends HBox {
         return card;
     }
     
-    /** Loads /images/logo.png; falls back to the letter badge if the file isn't there. */
+    /** Loads the logo (dark version in dark mode); falls back to the letter badge if the file isn't there. */
     private Node buildLogo() {
-        var url = getClass().getResource("/images/logo.png");
-        if (url == null) {
+        ImageView view = ThemeManager.createLogo(48);
+        if (view == null) {
             Label fallback = new Label("B");
             fallback.getStyleClass().add("auth-logo");
             return fallback;
         }
-     // Load at 2x so it stays sharp on high-DPI screens, then display at 52px tall.
-        ImageView view = new ImageView(new Image(url.toExternalForm(), 0, 104, true, true));
-        view.setFitHeight(52);
-        view.setFitHeight(48);
-        view.setPreserveRatio(true);
-        view.setSmooth(true);
         return view;
     }
 }
