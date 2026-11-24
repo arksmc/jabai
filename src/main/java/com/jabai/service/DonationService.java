@@ -1,3 +1,7 @@
+/*
+ * this file records cash and item donations, where item donations add stock and voiding one removes it again. the wallet screen calls it and it uses the donation and inventory daos underneath.
+ */
+
 package com.jabai.service;
 
 import com.jabai.db.Database;

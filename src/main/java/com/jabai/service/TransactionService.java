@@ -1,3 +1,7 @@
+/*
+ * this file lists and voids transactions for an outlet so sales and donations can be handled in one place. the clerk transactions screen and the system facade call it and it uses the transaction dao underneath.
+ */
+
 package com.jabai.service;
 
 import com.jabai.db.TransactionDao;

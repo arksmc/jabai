@@ -1,3 +1,6 @@
+/*
+ * this file handles selling products at an outlet, from checking stock to saving the sale and taking the stock out in one transaction. the sales screen calls it and it uses the sale and inventory daos underneath.
+ */
 package com.jabai.service;
 
 import com.jabai.db.Database;

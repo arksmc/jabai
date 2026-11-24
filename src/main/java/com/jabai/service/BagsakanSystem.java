@@ -1,3 +1,6 @@
+/*
+ * this file is the single entry point that the rest of the app can use to reach locations, stock, transactions and voiding. it keeps one shared instance and hands the work to the other services and daos.
+ */
 package com.jabai.service;
 
 import com.jabai.db.Database;

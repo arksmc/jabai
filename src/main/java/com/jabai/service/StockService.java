@@ -1,3 +1,7 @@
+/*
+ * this file handles moving stock between the main warehouse and the outlets, including stock orders and sending requested items. the stock screens call it and it uses the stock order, stock request and inventory daos underneath.
+ */
+
 package com.jabai.service;
 
 import com.jabai.db.Database;

@@ -1,3 +1,6 @@
+/*
+ * this file gives the manager a read-only view of sales made by each clerk and outlet. the sale history screen calls it and it uses the sale dao underneath.
+ */
 package com.jabai.service;
 
 import com.jabai.db.SaleDao;
