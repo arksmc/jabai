@@ -367,7 +367,7 @@
 .auth-chip {
     -fx-background-color: #e3f2fd;
     -fx-text-fill: #1565c0;
-    -fx-background-radius: 20;
+    -fx-background-radius: 4;
     -fx-padding: 4 12 4 12;
     -fx-font-size: 12px;
     -fx-font-weight: bold;
@@ -378,7 +378,7 @@
     -fx-text-fill: white;
     -fx-font-size: 15px;
     -fx-font-weight: bold;
-    -fx-background-radius: 30;
+    -fx-background-radius: 8;
     -fx-padding: 12 20 12 20;
     -fx-cursor: hand;
 }
@@ -388,8 +388,8 @@
 .auth-outline-btn {
     -fx-background-color: white;
     -fx-border-color: #1565c0;
-    -fx-border-radius: 30;
-    -fx-background-radius: 30;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
     -fx-text-fill: #1565c0;
     -fx-font-size: 15px;
     -fx-font-weight: bold;
@@ -623,7 +623,7 @@
 .chip {
     -fx-background-color: -neutral-bg;
     -fx-text-fill: -neutral;
-    -fx-background-radius: 20;
+    -fx-background-radius: 4;
     -fx-padding: 2 10 2 10;
     -fx-font-size: 12px;
 }
