@@ -1,9 +1,9 @@
 package com.jabai.ui;
 
-import com.jabai.db.InventoryDao;
-import com.jabai.db.LocationDao;
 import com.jabai.model.Location;
 import com.jabai.model.StockRow;
+import com.jabai.model.Inventory;
+import com.jabai.service.BagsakanSystem;
 import com.jabai.util.Format;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -22,8 +22,7 @@ import java.util.List;
 
 public class InventoryScreen extends VBox {
 
-    private final InventoryDao inventoryDao = new InventoryDao();
-    private final LocationDao locationDao = new LocationDao();
+    private final BagsakanSystem system = BagsakanSystem.getInstance();
     private final Integer fixedLocationId; // null = manager picks a location
 
     private final TableView<StockRow> table = new TableView<>();
@@ -67,7 +66,7 @@ public class InventoryScreen extends VBox {
         controls.setAlignment(Pos.CENTER_LEFT);
         if (fixedLocationId == null) {
             try {
-                locationBox.getItems().setAll(locationDao.findAll());
+                locationBox.getItems().setAll(system.locations());
                 if (!locationBox.getItems().isEmpty()) locationBox.setValue(locationBox.getItems().get(0));
             } catch (SQLException ex) {
                 new Alert(Alert.AlertType.ERROR, "Failed to load locations: " + ex.getMessage()).show();
@@ -128,8 +127,8 @@ public class InventoryScreen extends VBox {
             return;
         }
         try {
-            List<StockRow> rows = inventoryDao.findStock(locId);
-            data.setAll(rows);
+            Inventory inventory = system.inventoryAt(locId);
+            data.setAll(inventory.getRows());
         } catch (SQLException e) {
             new Alert(Alert.AlertType.ERROR, "Failed to load inventory: " + e.getMessage()).show();
         }

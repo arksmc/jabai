@@ -1,6 +1,5 @@
 package com.jabai;
 
-import com.jabai.db.Database;
 import com.jabai.model.Clerk;
 import com.jabai.model.Location;
 import com.jabai.model.Manager;
@@ -11,6 +10,7 @@ import com.jabai.ui.LoginScreen;
 import com.jabai.ui.ManagerDashboard;
 import com.jabai.ui.OutletSelectionScreen;
 import com.jabai.ui.WelcomeScreen;
+import com.jabai.service.BagsakanSystem;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
@@ -25,7 +25,7 @@ public class Main extends Application {
 
     @Override
     public void start(Stage stage) {
-        Database.init();
+        BagsakanSystem.getInstance().initialize();
 
         scene = new Scene(new StackPane(), 1000, 620);
         scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());
