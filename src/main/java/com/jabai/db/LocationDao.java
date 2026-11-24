@@ -1,3 +1,7 @@
+/*
+ * this file reads the locations table, which holds the main warehouse and the outlets. screens and services use it to list outlets or find the warehouse.
+ */
+
 package com.jabai.db;
 
 import com.jabai.model.Location;

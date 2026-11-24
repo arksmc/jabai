@@ -1,3 +1,7 @@
+/*
+ * this file saves and reads the requests that clerks send to the warehouse for more stock. its methods are static, and stockservice uses them when a request is made, sent or rejected.
+ */
+
 package com.jabai.db;
 
 import java.sql.Connection;

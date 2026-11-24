@@ -1,3 +1,7 @@
+/*
+ * this file creates the sqlite tables and opens connections for the rest of the system. it also fills the tables with sample products, stock, users and a second outlet, which are hardcoded here so the app has data the first time it runs.
+ */
+
 package com.jabai.db;
 
 import com.jabai.util.PasswordUtil;

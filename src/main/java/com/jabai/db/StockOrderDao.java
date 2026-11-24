@@ -1,3 +1,7 @@
+/*
+ * this file saves stock orders placed with a supplier and their items, and reads them back for the stock orders screen. it is used by stockservice when the manager restocks the warehouse.
+ */
+
 package com.jabai.db;
 
 import com.jabai.model.OrderItemView;

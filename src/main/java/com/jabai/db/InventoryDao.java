@@ -1,3 +1,7 @@
+/*
+ * this file runs the sql for the inventory table, which stores how much of each product is at each location. it increases and decreases stock and refuses to go below zero by throwing insufficientstockexception.
+ */
+
 package com.jabai.db;
 
 import com.jabai.model.Product;

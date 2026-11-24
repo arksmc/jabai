@@ -1,3 +1,7 @@
+/*
+ * this file saves cash and item donations and reads them back for the wallet and transaction screens. it also marks a donation as voided when it is cancelled.
+ */
+
 package com.jabai.db;
 
 import java.sql.Connection;

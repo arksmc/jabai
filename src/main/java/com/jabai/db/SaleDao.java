@@ -1,3 +1,7 @@
+/*
+ * this file saves sales and their items and reads them back for the sale history, with optional filters by outlet and cashier. it also marks a sale as voided when a clerk cancels it.
+ */
+
 package com.jabai.db;
 
 import com.jabai.model.FilterOption;

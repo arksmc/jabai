@@ -1,3 +1,7 @@
+/*
+ * this file combines sales and donations into one list of transactions for the history screens. clerks see their own outlet, while managers can see every outlet.
+ */
+
 package com.jabai.db;
 
 import com.jabai.model.TransactionRow;

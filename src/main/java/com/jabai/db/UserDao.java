@@ -1,3 +1,7 @@
+/*
+ * this file runs the sql for the users table, such as finding a user by username when logging in. it builds a manager or clerk object from each row so the rest of the system never touches raw data.
+ */
+
 package com.jabai.db;
 
 import com.jabai.model.Clerk;
