@@ -215,7 +215,7 @@ public class StockOrdersScreen extends VBox {
         if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
 
         try {
-            service.receiveOrder(o.id(), manager.getId());
+            service.receiveOrder(manager, o.id());
         } catch (Exception ex) {
             error(ex.getMessage());
         }
@@ -232,7 +232,7 @@ public class StockOrdersScreen extends VBox {
         if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
 
         try {
-            service.cancelOrder(o.id());
+            service.cancelOrder(manager, o.id());
         } catch (Exception ex) {
             error(ex.getMessage());
         }

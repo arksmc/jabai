@@ -1,0 +1,54 @@
+/*
+ * Dark theme. Loaded AFTER styles.css (see ThemeManager), so these values
+ * replace the light ones. Only colors change here; layout stays in styles.css.
+ */
+.root {
+    /* JavaFX's built-in controls (combo boxes, date pickers, dialogs, scrollbars,
+       plain text fields) derive all their colors from these four values. */
+    -fx-base: #25322a;
+    -fx-background: #131b16;
+    -fx-control-inner-background: #1b261f;
+    -fx-control-inner-background-alt: #1f2c24;
+    -fx-accent: #3f8f45;
+    -fx-focus-color: #4caf50;
+    -fx-faint-focus-color: transparent;
+
+    /* Bagsakan palette */
+    -brand: #43a047;
+    -brand-text: #81c784;
+    -ink: #e8efe9;
+    -ink-muted: #9bab9e;
+    -ink-soft: #c5d1c7;
+    -ink-faint: #75857a;
+    -line: #2f3d33;
+    -line-strong: #3d4d42;
+    -line-faint: #26332b;
+    -surface: #1a241e;
+    -surface-soft: #212d25;
+    -app-bg: #121a15;
+    -hero-bg: #17221b;
+    -row-hover: #24322a;
+    -row-selected: #2c4a33;
+    -row-checked: #22302a;
+
+    -ok: #66bb6a;
+    -ok-bg: #1f3a25;
+    -warn: #ffb74d;
+    -warn-bg: #3d3014;
+    -low: #ffa040;
+    -danger: #ef7d7d;
+    -danger-bg: #3d2020;
+    -danger-border: #7a4444;
+    -info: #64b5f6;
+    -info-bg: #1b3350;
+    -neutral: #a7b8c0;
+    -neutral-bg: #2a3439;
+
+    -banner-bg: #4a3d12;
+    -banner-fg: #ffe08a;
+
+    -tone0-bg: #3d2325;  -tone0-fg: #f19a9d;
+    -tone1-bg: #3b3118;  -tone1-fg: #f0cd7a;
+    -tone2-bg: #212d45;  -tone2-fg: #9db8ec;
+    -tone3-bg: #1f3a25;  -tone3-fg: #8fd194;
+}

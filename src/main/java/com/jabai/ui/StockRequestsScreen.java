@@ -49,7 +49,9 @@ public class StockRequestsScreen extends VBox {
         SendRow(RequestItemView item, double available) {
             this.item = item;
             this.available = available;
-            this.send = BigDecimal.valueOf(item.getQuantityRequested()).stripTrailingZeros().toPlainString();
+            
+            double suggested = Math.min(item.getQuantityRequested(), Math.max(0, available));
+            this.send = BigDecimal.valueOf(suggested).stripTrailingZeros().toPlainString();
         }
 
         String stockLabel() {

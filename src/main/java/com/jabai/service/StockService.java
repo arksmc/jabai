@@ -90,14 +90,17 @@ public class StockService {
         }
     }
 
-    public long createOrder(int managerId, String supplier, String notes,
-                            List<OrderLine> lines) throws SQLException {
-        if (supplier == null || supplier.isBlank()) {
-            throw new IllegalArgumentException("Supplier is required.");
-        }
-        if (lines.isEmpty()) {
-            throw new IllegalArgumentException("Order has no items.");
-        }
+    public long createOrder(User actor, String supplier, String notes,
+            				List<OrderLine> lines) throws SQLException {
+    	requireManager(actor);
+    	int managerId = actor.getId();
+    	if (supplier == null || supplier.isBlank()) {
+    		throw new IllegalArgumentException("Supplier is required.");
+    	}
+    	if (lines == null || lines.isEmpty()) {
+    		throw new IllegalArgumentException("Order has no items.");
+    	}
+    	
         return inTransaction(c -> {
             long orderId;
             try (PreparedStatement ps = c.prepareStatement(
@@ -123,7 +126,9 @@ public class StockService {
         });
     }
 
-    public void receiveOrder(long orderId, int userId) throws SQLException {
+    public void receiveOrder(User actor, long orderId) throws SQLException {
+        requireManager(actor);
+        int userId = actor.getId();
         inTransaction(c -> {
             try (PreparedStatement ps = c.prepareStatement(
                     "UPDATE stock_orders SET status = 'Received', received_at = datetime('now','localtime') "
@@ -154,7 +159,8 @@ public class StockService {
         });
     }
 
-    public void cancelOrder(long orderId) throws SQLException {
+    public void cancelOrder(User actor, long orderId) throws SQLException {
+        requireManager(actor);
         try (Connection c = Database.connect();
              PreparedStatement ps = c.prepareStatement(
                      "UPDATE stock_orders SET status = 'Cancelled' WHERE id = ? AND status = 'Ordered'")) {
