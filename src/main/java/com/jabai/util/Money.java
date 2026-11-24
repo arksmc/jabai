@@ -1,3 +1,7 @@
+/*
+ * this file converts between centavos and peso text so money is always stored as whole numbers. screens, services and daos use it whenever an amount is read, shown or saved.
+ */
+
 package com.jabai.util;
 
 import java.math.BigDecimal;

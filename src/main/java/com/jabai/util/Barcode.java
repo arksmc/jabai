@@ -1,3 +1,7 @@
+/*
+ * this file creates and checks product barcodes. the product screens and the products dao use it when a barcode is needed.
+ */
+
 package com.jabai.util;
 
 public final class Barcode {

@@ -1,3 +1,7 @@
+/*
+ * this file turns dates, quantities and other values into clean text for display. screens and tables use it so numbers and dates look the same everywhere.
+ */
+
 package com.jabai.util;
 
 public final class Format {

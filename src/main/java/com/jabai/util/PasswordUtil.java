@@ -1,3 +1,7 @@
+/*
+ * this file hashes passwords with bcrypt and checks a typed password against a stored hash. the user dao and login screen use it so plain passwords are never saved.
+ */
+
 package com.jabai.util;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
