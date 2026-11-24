@@ -184,7 +184,10 @@ public class NewOrderForm extends VBox {
             for (int i = 0; i < lines.size(); i++) {
                 Line existing = lines.get(i);
                 if (existing.product().getId() == p.getId()) {
-                    lines.set(i, new Line(p, existing.quantity() + qty, cost));
+                	double newQty = existing.quantity() + qty;
+                	long blendedCost = Math.round(
+                	        (existing.quantity() * existing.unitCostCentavos() + qty * cost) / newQty);
+                	lines.set(i, new Line(p, newQty, blendedCost));
                     merged = true;
                     break;
                 }
