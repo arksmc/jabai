@@ -15,6 +15,9 @@ public class ManagerDashboard extends Dashboard {
         addPage("Stock Requests", () -> new StockRequestsScreen(manager));
         addSection("MONITOR");
         addPage("Sale History", () -> new SaleHistoryScreen(manager));
+        addPage("Transaction History", () -> new TransactionHistoryScreen(getUser()));
+        addSection("CLERK VIEW");
+        addPage("View as Clerk", () -> new ViewAsClerkScreen(manager, onLogout));
 
         start();
     }

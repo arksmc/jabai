@@ -1,6 +1,7 @@
 package com.jabai.service;
 
 import com.jabai.db.TransactionDao;
+import com.jabai.model.Role;
 import com.jabai.model.TransactionRow;
 import com.jabai.model.User;
 
@@ -17,6 +18,13 @@ public class TransactionService {
             throw new SecurityException("You can't view another outlet's transactions.");
         }
         return transactionDao.findRecent(locationId, limit);
+    }
+
+    public List<TransactionRow> all(User actor, int limit) throws SQLException {
+        if (actor.getRole() != Role.MANAGER) {
+            throw new SecurityException("Only managers can view transactions across all outlets.");
+        }
+        return transactionDao.findAll(null, limit);
     }
 
     public void voidTransaction(User actor, TransactionRow row, String reason) throws SQLException {

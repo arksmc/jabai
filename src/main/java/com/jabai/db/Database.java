@@ -173,6 +173,7 @@ public class Database {
 	        seed(c);
 	        seedStock(c);
 	        seedUsers(c);
+	        seedSecondOutlet(c);
 	    } catch (SQLException e) {
 	        throw new IllegalStateException("Database setup failed", e);
 	    }
@@ -309,4 +310,62 @@ public class Database {
 			}
 		}
 	}
+	
+    private static void seedSecondOutlet(Connection c) throws SQLException {
+        int outletId;
+        try (PreparedStatement ps = c.prepareStatement("SELECT id FROM locations WHERE name = ?")) {
+            ps.setString(1, "Outlet 2");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    outletId = rs.getInt(1);
+                } else {
+                    outletId = -1;
+                }
+            }
+        }
+
+        if (outletId == -1) {
+            try (PreparedStatement ps = c.prepareStatement(
+                    "INSERT INTO locations(name, type) VALUES (?, 'OUTLET')",
+                    Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, "Outlet 2");
+                ps.executeUpdate();
+                try (ResultSet keys = ps.getGeneratedKeys()) {
+                    keys.next();
+                    outletId = keys.getInt(1);
+                }
+            }
+            try (PreparedStatement ps = c.prepareStatement(
+                    "INSERT OR IGNORE INTO inventory(location_id, product_id, quantity) "
+                            + "SELECT ?, id, "
+                            + "CASE WHEN category IN ('Fish', 'Seafood') THEN 120 "
+                            + "WHEN id % 3 = 0 THEN 20 "
+                            + "WHEN id % 4 = 0 THEN 0 "
+                            + "ELSE 80 END FROM products")) {
+                ps.setInt(1, outletId);
+                ps.executeUpdate();
+            }
+        }
+
+        boolean clerkExists;
+        try (PreparedStatement ps = c.prepareStatement("SELECT 1 FROM users WHERE username = ?")) {
+            ps.setString(1, "clerk2");
+            try (ResultSet rs = ps.executeQuery()) {
+                clerkExists = rs.next();
+            }
+        }
+        if (!clerkExists) {
+            try (PreparedStatement ps = c.prepareStatement(
+                    "INSERT INTO users(username, password_hash, full_name, role, location_id, status) "
+                            + "VALUES (?,?,?,?,?,?)")) {
+                ps.setString(1, "clerk2");
+                ps.setString(2, PasswordUtil.hash("clerk123"));
+                ps.setString(3, "Outlet 2 Clerk");
+                ps.setString(4, "CLERK");
+                ps.setInt(5, outletId);
+                ps.setString(6, "Active");
+                ps.executeUpdate();
+            }
+        }
+    }
 }
