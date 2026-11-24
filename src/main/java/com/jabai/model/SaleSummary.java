@@ -1,3 +1,7 @@
+/*
+ * this file holds the summary of one sale, including its cashier, outlet, total, status and void reason. the sale history screens show a list of these.
+ */
+
 package com.jabai.model;
 
 import com.jabai.util.Money;

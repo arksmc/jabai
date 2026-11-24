@@ -1,3 +1,7 @@
+/*
+ * this file is the base class for everyone who logs in, holding the shared details like username, full name and status. it is sealed so that only manager and clerk can extend it.
+ */
+
 package com.jabai.model;
 
 public abstract sealed class User permits Manager, Clerk {

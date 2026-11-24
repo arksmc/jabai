@@ -1,4 +1,6 @@
-
+/*
+ * this file is a read-only view of one item inside a stock request. it is used to show the request's details on screen.
+ */
 package com.jabai.model;
 
 import com.jabai.util.Format;

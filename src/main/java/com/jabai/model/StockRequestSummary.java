@@ -1,3 +1,7 @@
+/*
+ * this file holds the summary of one stock request, such as the outlet, date and status. the stock requests screens show a list of these.
+ */
+
 package com.jabai.model;
 
 public class StockRequestSummary {

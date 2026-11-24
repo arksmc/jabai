@@ -1,3 +1,7 @@
+/*
+ * this file represents all the stock held at one location and can search it, find a product or list low and out-of-stock items. the inventory screens use it through bagsakansystem instead of reading rows directly.
+ */
+
 package com.jabai.model;
 
 import java.util.HashMap;

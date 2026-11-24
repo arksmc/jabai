@@ -1,3 +1,7 @@
+/*
+ * this file is one line in the transaction history, which can be a sale, a cash donation or an item donation. both the clerk and manager transaction screens use it to display and void entries.
+ */
+
 package com.jabai.model;
 
 public record TransactionRow(String kind, long id, String createdAt, String recordedBy,

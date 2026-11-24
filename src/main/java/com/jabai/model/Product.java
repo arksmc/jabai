@@ -1,3 +1,7 @@
+/*
+ * this file represents one item the business sells, with its code, name, category, unit, prices and reorder level. it is the main data object passed between the product screens, the dao and the services.
+ */
+
 package com.jabai.model;
 
 import com.jabai.util.Money;

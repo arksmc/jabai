@@ -1,3 +1,7 @@
+/*
+ * this file is the screen where the manager builds a stock order by choosing a supplier, products, quantities and unit costs. when the order is placed, it passes the order to stockservice, which saves it and updates the warehouse stock.
+ */
+
 package com.jabai.ui;
 
 import com.jabai.model.Manager;

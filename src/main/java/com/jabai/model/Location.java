@@ -1,3 +1,7 @@
+/*
+ * this file represents a place that holds stock, either the main warehouse or an outlet. inventory, sales and requests all point to a location.
+ */
+
 package com.jabai.model;
 
 public class Location {

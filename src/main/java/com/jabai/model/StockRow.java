@@ -1,6 +1,9 @@
+/*
+ * this file is one row of an inventory list, showing a product and how much of it is in stock at a location. it also works out whether the item is in stock, low stock or out of stock.
+ */
+
 package com.jabai.model;
 
-/** One product's stock at one location (replaces InventoryScreen.InventoryItem). */
 public record StockRow(int productId, String code, String name, String category, String unit,
                        String status, long priceCentavos, double quantity, double reorderLevel) {
 

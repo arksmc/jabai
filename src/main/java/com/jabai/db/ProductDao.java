@@ -1,3 +1,7 @@
+/*
+ * this file is the only class that runs sql on the products table in the database. screens and services use it to list, add, update and remove products.
+ */
+
 package com.jabai.db;
 
 import com.jabai.model.Product;

@@ -1,3 +1,7 @@
+/*
+ * this file lists the reasons stock can change, such as sale, void, donation, purchase and transfer. every stock movement is saved with one of these so the history can be explained later.
+ */
+
 package com.jabai.model;
 
 public enum MovementReason {

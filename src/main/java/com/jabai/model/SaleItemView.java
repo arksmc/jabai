@@ -1,3 +1,7 @@
+/*
+ * this file is a read-only view of one item inside a past sale. it is used to show what was sold when a sale is selected in the history.
+ */
+
 package com.jabai.model;
 
 import com.jabai.util.Money;

@@ -1,3 +1,7 @@
+/*
+ * this file pairs a product with the quantity currently in stock at a location. it is used where a screen needs both the product details and how much is available, such as when picking items to sell.
+ */
+
 package com.jabai.model;
 
 import com.jabai.util.Format;

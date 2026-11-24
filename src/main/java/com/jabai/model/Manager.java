@@ -1,3 +1,7 @@
+/*
+ * this file represents the manager, who has no fixed location and can access every outlet. the dashboards and services check this class to decide what a manager is allowed to do.
+ */
+
 package com.jabai.model;
 
 public final class Manager extends User {

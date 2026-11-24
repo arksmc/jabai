@@ -1,3 +1,7 @@
+/*
+ * this file represents a clerk, who is assigned to one outlet and can only work in that location. services use its location to block a clerk from touching another outlet's data.
+ */
+
 package com.jabai.model;
 
 public final class Clerk extends User {
